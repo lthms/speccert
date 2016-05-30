@@ -1,0 +1,3 @@
+Inductive Software :=
+| smm
+| unprivileged.

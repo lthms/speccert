@@ -1,0 +1,10 @@
+Require Export SpecCert.Smm.Delta.Preserve.Architecture.
+Require Export SpecCert.Smm.Delta.Preserve.Write.
+Require Export SpecCert.Smm.Delta.Preserve.DisableInterrupt.
+Require Export SpecCert.Smm.Delta.Preserve.EnableInterrupt.
+Require Export SpecCert.Smm.Delta.Preserve.ReceiveInterrupt.
+Require Export SpecCert.Smm.Delta.Preserve.OpenSmram.
+Require Export SpecCert.Smm.Delta.Preserve.CloseSmram.
+Require Export SpecCert.Smm.Delta.Preserve.LockSmramc.
+Require Export SpecCert.Smm.Delta.Preserve.Read.
+Require Export SpecCert.Smm.Delta.Preserve.Preserve_proofs.

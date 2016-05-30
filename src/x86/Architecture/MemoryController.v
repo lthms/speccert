@@ -1,0 +1,6 @@
+Require Export SpecCert.x86.Architecture.MemoryController.MemoryController_rec.
+Require Export SpecCert.x86.Architecture.MemoryController.MemoryController_eq.
+Require Export SpecCert.x86.Architecture.MemoryController.MemoryController_prop.
+Require Export SpecCert.x86.Architecture.MemoryController.MemoryController_dec.
+Require Export SpecCert.x86.Architecture.MemoryController.MemoryController_func.
+Require Export SpecCert.x86.Architecture.MemoryController.MemoryController_proofs.

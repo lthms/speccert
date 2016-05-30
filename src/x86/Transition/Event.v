@@ -1,0 +1,9 @@
+Require Export SpecCert.x86.Transition.Event.DisableInterrupt.
+Require Export SpecCert.x86.Transition.Event.EnableInterrupt.
+Require Export SpecCert.x86.Transition.Event.ReceiveInterrupt.
+Require Export SpecCert.x86.Transition.Event.Read.
+Require Export SpecCert.x86.Transition.Event.Write.
+Require Export SpecCert.x86.Transition.Event.NextInstruction.
+Require Export SpecCert.x86.Transition.Event.OpenSmram.
+Require Export SpecCert.x86.Transition.Event.CloseSmram.
+Require Export SpecCert.x86.Transition.Event.LockSmramc.

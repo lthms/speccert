@@ -1,0 +1,10 @@
+*.vo
+*.glob
+*.v.d
+*.aux
+.coq-native
+Makefile.speccert
+.make
+_region_.tex
+docs/html
+docs/speccert.pdf
