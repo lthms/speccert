@@ -5,18 +5,18 @@ Require Import SpecCert.Cache.
 Definition write_uncachable
            {S        :Set}
            (a        :Architecture S)
-           (context  :ProcessorUnit -> S)
+           (context  :Architecture S -> S)
            (pa       :PhysicalAddress) :=
-  let current_context := (context (proc a)) in
+  let current_context := (context a) in
   let ha := phys_to_hard a pa in
   update_memory_content a ha current_context.
 
 Definition write_writeback
            {S        :Set}
            (a        :Architecture S)
-           (context  :ProcessorUnit -> S)
+           (context  :Architecture S -> S)
            (pa       :PhysicalAddress) :=
-  let current_context := (context (proc a)) in
+  let current_context := (context a) in
   let a' := if cache_hit_dec (cache a) pa
             then a
             else load_in_cache_from_memory a pa in
@@ -32,7 +32,7 @@ Definition write_smrrhit
 
 Definition write_post
            {S       :Set}
-           (context :ProcessorUnit -> S)
+           (context :Architecture S -> S)
            (pa      :PhysicalAddress) :=
   fun (a a':Architecture S) =>
     match resolve_cache_strategy (proc a) pa with

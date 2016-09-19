@@ -1,10 +1,10 @@
 Require Import SpecCert.Address.
-Require Import SpecCert.Memory.
 Require Import SpecCert.Cache.
-Require Import SpecCert.x86.
-
-Require Import SpecCert.Smm.Software.
+Require Import SpecCert.Formalism.
+Require Import SpecCert.Memory.
 Require Import SpecCert.Smm.Delta.Behavior.
+Require Import SpecCert.Smm.Software.
+Require Import SpecCert.x86.
 
 Definition invariant := Architecture Software -> Prop.
 
@@ -28,13 +28,13 @@ Definition cache_clean_inv :=
                           -> find_cache_content a pa = Some smm.
 
 Definition ip_inv :=
-  fun (a:Architecture Software) =>
-    context (proc a) = smm
-    -> is_inside_smram (ip (proc a)).
+  fun (h:Architecture Software) =>
+    smm_context h = smm
+    -> is_inside_smram (ip (proc h)).
 
 Definition smbase_inv :=
-  fun (a:Architecture Software) =>
-     is_inside_smram (smbase (proc a)).
+  fun (h:Architecture Software) =>
+     is_inside_smram (smbase (proc h)).
 
 Definition inv :=
   fun (a:Architecture Software) =>
@@ -46,50 +46,123 @@ Definition inv :=
     /\ smbase_inv a.
 
 Definition partial_preserve
-           (ev   :Event Software)
+           (ev   :x86Event Software)
            (prop :Architecture Software -> Prop)
            (i    :Architecture Software -> Prop) :=
-  forall a a',
-    inv a -> prop a -> Transition context a ev a' -> i a'.
+  forall h h': Architecture Software,
+    inv h
+    -> prop h
+    -> x86_precondition h ev
+    -> x86_postcondition smm_context h ev h'
+    -> i h'.
 
 Definition software_partial_preserve
            (ev   :SoftwareEvent)
            (prop :Architecture Software -> Prop)
            (i    :Architecture Software -> Prop) :=
-  forall a a',
-    inv a -> prop a -> smm_behavior a ev -> Transition context a (software ev) a' -> i a'.
+  forall h h': Architecture Software,
+    inv h
+    -> prop h
+    -> smm_behavior h ev
+    -> x86_precondition h (software ev)
+    -> x86_postcondition smm_context h (software ev) h'
+    -> i h'.
 
 Definition preserve
-           (ev :Event Software)
+           (ev :x86Event Software)
            (i  :Architecture Software -> Prop) :=
-  forall a a',
-    inv a -> Transition context a ev a' -> i a'.
+  forall h h': Architecture Software,
+    inv h
+    -> x86_precondition h ev
+    -> x86_postcondition smm_context h ev h'
+    -> i h'.
 
 Definition software_preserve
            (ev :SoftwareEvent)
            (i  :Architecture Software -> Prop) :=
-  forall a a',
-    inv a -> smm_behavior a ev -> Transition context a (software ev) a' -> i a'.
+  forall h h': Architecture Software,
+    inv h
+    -> smm_behavior h ev
+    -> x86_precondition h (software ev)
+    -> x86_postcondition smm_context h (software ev) h'
+    -> i h'.
 
 Definition preserve_inv
-           (ev:Event Software) :=
-  forall a a',
-    inv a -> Transition context a ev a' -> inv a'.
+           (ev:x86Event Software) :=
+  forall h h': Architecture Software,
+    inv h
+    -> x86_precondition h ev
+    -> x86_postcondition smm_context h ev h'
+    -> inv h'.
 
 Definition software_preserve_inv
            (ev:SoftwareEvent) :=
-  forall a a',
-    inv a -> smm_behavior a ev -> Transition context a (software ev) a' -> inv a'.
+  forall h h': Architecture Software,
+    inv h
+    -> smm_behavior h ev
+    -> x86_precondition h (software ev)
+    -> x86_postcondition smm_context h (software ev) h'
+    -> inv h'.
 
 Definition partial_preserve_inv
-
-           (ev    :Event Software)
+           (ev    :x86Event Software)
            (prop :Architecture Software -> Prop)
-  := forall a a',
-    inv a -> prop a -> Transition context a ev a' -> inv a'.
+  := forall h h': Architecture Software,
+    inv h
+    -> prop h
+    -> x86_precondition h ev
+    -> x86_postcondition smm_context h ev h'
+    -> inv h'.
 
 Definition software_partial_preserve_inv
            (ev    :SoftwareEvent)
            (prop :Architecture Software -> Prop)
-  := forall a a',
-    inv a -> prop a -> smm_behavior a ev -> Transition context a (software ev) a' -> inv a'.
+  := forall h h',
+    inv h
+    -> prop h
+    -> smm_behavior h ev
+    -> x86_precondition h (software ev)
+    -> x86_postcondition smm_context h (software ev) h'
+    -> inv h'.
+
+Ltac intros_preserve :=
+  let a := fresh "a" in
+  let a' := fresh "a'" in
+  let Hsmramc := fresh "Hsmramc" in
+  let Hsmram := fresh "Hsmram" in
+  let Hsmrr := fresh "Hsmrr" in
+  let Hclean := fresh "Hclean" in
+  let Hip := fresh "Hip" in
+  let Hsmbase := fresh "Hsmbase" in
+  let Hpre := fresh "Hpre" in
+  let Hpost := fresh "Hpost" in
+  intros a a' [Hsmramc [Hsmram [Hsmrr [Hclean [Hip Hsmbase]]]]] Hpre Hpost.
+
+Ltac intros_soft_preserve :=
+  let a := fresh "a" in
+  let a' := fresh "a'" in
+  let Hsmramc := fresh "Hsmramc" in
+  let Hsmram := fresh "Hsmram" in
+  let Hsmrr := fresh "Hsmrr" in
+  let Hclean := fresh "Hclean" in
+  let Hip := fresh "Hip" in
+  let Hsmbase := fresh "Hsmbase" in
+  let Hsmm := fresh "Hsmm" in
+  let Hpre := fresh "Hpre" in
+  let Hpost := fresh "Hpost" in
+  intros a a' [Hsmramc [Hsmram [Hsmrr [Hclean [Hip Hsmbase]]]]] Hsmm Hpre Hpost.
+
+Ltac unfold_inv :=
+  unfold inv;
+  unfold smramc_inv, smram_code_inv, smrr_inv, cache_clean_inv.
+
+Ltac bully_preserve f1 f2 :=
+  unfold preserve_inv;
+  unfold_inv;
+  intros a a' [Hsmramc [Hsmram [Hsmrr Hclean]]] Hpre Hpost;
+  unfold x86_postcondition in Hpost;
+  unfold f1 in Hpost;
+  unfold f2 in Hpost;
+  rewrite Hpost;
+  simpl;
+  do 3 (try split); trivial.

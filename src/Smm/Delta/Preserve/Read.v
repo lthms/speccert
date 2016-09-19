@@ -1,14 +1,14 @@
+Require Import Coq.Logic.Classical_Prop.
+
 Require Import SpecCert.Address.
 Require Import SpecCert.Cache.
+Require Import SpecCert.Formalism.
 Require Import SpecCert.Interval.
 Require Import SpecCert.Memory.
-Require Import SpecCert.x86.
-
-Require Import SpecCert.Smm.Software.
 Require Import SpecCert.Smm.Delta.Invariant.
 Require Import SpecCert.Smm.Delta.Preserve.Architecture.
-
-Require Import Coq.Logic.Classical_Prop.
+Require Import SpecCert.Smm.Software.
+Require Import SpecCert.x86.
 
 Lemma read_strat_uc:
   forall pa :PhysicalAddress,
@@ -17,8 +17,8 @@ Lemma read_strat_uc:
                        inv.
 Proof.
   unfold partial_preserve.
-  intros pa a a' Hinv Hres [Hpre Hpost].
-  unfold read_post in Hpost.
+  intros pa a a' Hinv Hres Hpre Hpost.
+  unfold x86_postcondition, read_post in Hpost.
   rewrite Hres in Hpost.
   unfold read_uncachable_post in Hpost.
   rewrite Hpost.
@@ -32,8 +32,8 @@ Lemma read_strat_sh:
                        inv.
 Proof.
   unfold partial_preserve.
-  intros pa a a' Hinv Hres [Hpre Hpost].
-  unfold read_post in Hpost.
+  intros pa a a' Hinv Hres Hpre Hpost.
+  unfold x86_postcondition, read_post in Hpost.
   rewrite Hres in Hpost.
   unfold read_smrrhit_post in Hpost.
   rewrite Hpost.
@@ -48,9 +48,8 @@ Lemma read_strat_smrr_wb:
                        inv.
 Proof.
   unfold partial_preserve.
-  intros pa a a' Hinv [Hsmrr Hsmm] [Hpre Hpost].
-  unfold read_post in Hpost.
-  unfold resolve_cache_strategy in Hpost.
+  intros pa a a' Hinv [Hsmrr Hsmm] Hpre Hpost.
+  unfold x86_postcondition, read_post, resolve_cache_strategy in Hpost.
   destruct is_inside_smrr_dec; [| intuition ].
   destruct is_in_smm_dec.
   + rewrite Hsmm in Hpost.
@@ -73,8 +72,8 @@ Lemma read_strat_not_smrr:
                        inv.
 Proof.
   unfold partial_preserve.
-  intros pa a a' Hinv Hnot_smrr [Hpre Hpost].
-  unfold read_post in Hpost.
+  intros pa a a' Hinv Hnot_smrr Hpre Hpost.
+  unfold x86_postcondition, read_post in Hpost.
   unfold resolve_cache_strategy in Hpost.
   destruct is_inside_smrr_dec; [ intuition |].
   case_eq (strategy (proc a)); intro Heqstrat; rewrite Heqstrat in Hpost.
@@ -100,9 +99,9 @@ Lemma read_inv:
       preserve (software (Read pa)) inv.
 Proof.
   unfold preserve.
-  intros pa a a' Hinv Htrans.
+  intros pa a a' Hinv Hpre Hpost.
   case_eq (resolve_cache_strategy (proc a) pa); intro Heqstrat.
-  + apply (read_strat_uc pa a a' Hinv Heqstrat Htrans).
+  + apply (read_strat_uc pa a a' Hinv Heqstrat Hpre Hpost).
   + destruct (is_inside_smrr_dec (proc a) pa).
     * unfold resolve_cache_strategy in Heqstrat.
       destruct is_inside_smrr_dec; [| intuition ].
@@ -110,9 +109,9 @@ Proof.
       assert (is_inside_smrr (proc a) pa /\ smm_strategy (smrr (proc a)) = WriteBack); [
           split; trivial
          |].
-      apply (read_strat_smrr_wb pa a a' Hinv H Htrans).
-    * apply (read_strat_not_smrr pa a a' Hinv n Htrans).
-  + apply (read_strat_sh pa a a' Hinv Heqstrat Htrans).
+      apply (read_strat_smrr_wb pa a a' Hinv H Hpre Hpost).
+    * apply (read_strat_not_smrr pa a a' Hinv n Hpre Hpost).
+  + apply (read_strat_sh pa a a' Hinv Heqstrat Hpre Hpost).
 Qed.
 
 Lemma exec_inv:
@@ -120,10 +119,8 @@ Lemma exec_inv:
     preserve (hardware (Exec o)) inv.
 Proof.
   unfold preserve.
-  intros o a a' Hinv Htrans.
-  apply (read_inv (ip (proc a)) a a'); [ exact Hinv
-                                       | destruct Htrans
-                                       ; constructor ].
-  + unfold no_pre; trivial.
-  + exact r.
+  intros o a a' Hinv Hpre Hpost.
+  apply (read_inv (ip (proc a)) a a'); [ exact Hinv | idtac |].
+  + unfold x86_precondition, no_pre; trivial.
+  + unfold x86_postcondition in *; exact Hpost.
 Qed.

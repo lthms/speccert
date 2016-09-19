@@ -1,14 +1,15 @@
 Require Import Coq.Logic.Classical_Prop.
+
 Require Import SpecCert.Address.
-Require Import SpecCert.Memory.
 Require Import SpecCert.Cache.
+Require Import SpecCert.Formalism.
 Require Import SpecCert.Interval.
 Require Import SpecCert.Map.
-Require Import SpecCert.x86.
-
-Require Import SpecCert.Smm.Software.
+Require Import SpecCert.Memory.
 Require Import SpecCert.Smm.Delta.Invariant.
 Require Import SpecCert.Smm.Delta.Preserve.Architecture.
+Require Import SpecCert.Smm.Software.
+Require Import SpecCert.x86.
 
 Lemma dram_neq_interval_1:
   forall i    :Interval,
@@ -90,9 +91,8 @@ Lemma write_strat_uc:
                      inv.
 Proof.
   unfold partial_preserve.
-  intros pa a a' Hinv Hsmm_strat
-         [Hpre Hpost].
-  unfold write_post in Hpost.
+  intros pa a a' Hinv Hsmm_strat Hpre Hpost.
+  unfold x86_postcondition, write_post in Hpost.
   rewrite Hsmm_strat in Hpost.
   unfold write_uncachable in Hpost.
   apply (update_memory_content_with_context_preserves_inv a a' pa Hinv Hpost).
@@ -105,9 +105,8 @@ Lemma write_strat_sh:
                      inv.
 Proof.
   unfold partial_preserve.
-  intros pa a a' Hinv Hsmm_strat
-         [Hpre Hpost].
-  unfold write_post in Hpost.
+  intros pa a a' Hinv Hsmm_strat Hpre Hpost.
+  unfold x86_postcondition, write_post in Hpost.
   rewrite Hsmm_strat in Hpost.
   unfold write_smrrhit in Hpost.
   rewrite Hpost.
@@ -122,9 +121,8 @@ Lemma write_strat_smrr_wb:
                      inv.
 Proof.
   unfold partial_preserve.
-  intros pa a a' Hinv [Hinside_smrr Hsmm_strat]
-         [Hpre Hpost].
-  unfold write_post, resolve_cache_strategy in Hpost.
+  intros pa a a' Hinv [Hinside_smrr Hsmm_strat] Hpre Hpost.
+  unfold x86_postcondition, write_post, resolve_cache_strategy in Hpost.
   destruct is_inside_smrr_dec; [| intuition ].
   destruct is_in_smm_dec as [Hin_smm|Hnot].
   + rewrite Hsmm_strat in Hpost.
@@ -147,7 +145,7 @@ Proof.
       assert (is_inside_smram pa -> is_in_smm (proc a'')); [
         intro Hin;
           exact H1 |].
-      rewrite H0 in Hpost.
+      rewrite (context_is_preserves a a'' H0) in Hpost.
       eapply (update_cache_content_with_context_preserves_inv a'' a' pa Hinv'' H2 Hpost).
   + unfold write_smrrhit in Hpost.
     rewrite Hpost.
@@ -161,9 +159,10 @@ Lemma write_not_smrr:
                      inv.
 Proof.
   unfold partial_preserve.
-  intros pa a a' Hinv Hnot_inside_smrr Htrans.
-  assert (write_post context pa a a') as Hpost.
-  destruct Htrans as [H1 H2]; exact H2.
+  intros pa a a' Hinv Hnot_inside_smrr Hpre Hpost.
+  unfold x86_postcondition in Hpost;
+  unfold x86_precondition in Hpre.
+  assert (write_post smm_context pa a a') as Hx; [unfold x86_postcondition in Hpost; exact Hpost |].
   remember (resolve_cache_strategy (proc a) pa) as strat.
   unfold write_post in Hpost.
   assert (strat = strategy (proc a)).
@@ -171,7 +170,7 @@ Proof.
   destruct is_inside_smrr_dec; [ intuition |].
   exact Heqstrat.
   case_eq (resolve_cache_strategy (proc a) pa); intro Hres; rewrite Hres in Hpost.
-  + apply (write_strat_uc pa a a' Hinv Hres Htrans).
+  + apply (write_strat_uc pa a a' Hinv Hres Hpre Hx).
   + destruct (is_inside_smrr_dec (proc a) pa); [ intuition |].
     unfold write_writeback in Hpost.
     assert (is_inside_smram pa -> is_in_smm (proc a)).
@@ -183,7 +182,7 @@ Proof.
     destruct (cache_hit_dec (cache a) pa).
     * apply (update_cache_content_with_context_preserves_inv a a' pa Hinv H0 Hpost).
     * apply (load_then_update_cache_with_context_preserves_inv a a' pa Hinv H0 Hpost).
- + apply (write_strat_sh pa a a' Hinv Hres Htrans).
+ + apply (write_strat_sh pa a a' Hinv Hres Hpre Hx).
 Qed.
 
 Lemma write_inv:

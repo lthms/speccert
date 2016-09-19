@@ -1,15 +1,15 @@
-Require Import SpecCert.x86.
-
+Require Import SpecCert.Formalism.
 Require Import SpecCert.Smm.Delta.Invariant.
-Require Import SpecCert.Smm.Delta.Preserve.Write.
+Require Import SpecCert.Smm.Delta.Preserve.CloseSmram.
 Require Import SpecCert.Smm.Delta.Preserve.DisableInterrupt.
 Require Import SpecCert.Smm.Delta.Preserve.EnableInterrupt.
-Require Import SpecCert.Smm.Delta.Preserve.ReceiveInterrupt.
-Require Import SpecCert.Smm.Delta.Preserve.OpenSmram.
-Require Import SpecCert.Smm.Delta.Preserve.CloseSmram.
 Require Import SpecCert.Smm.Delta.Preserve.LockSmramc.
-Require Import SpecCert.Smm.Delta.Preserve.Read.
 Require Import SpecCert.Smm.Delta.Preserve.NextInstruction.
+Require Import SpecCert.Smm.Delta.Preserve.OpenSmram.
+Require Import SpecCert.Smm.Delta.Preserve.Read.
+Require Import SpecCert.Smm.Delta.Preserve.ReceiveInterrupt.
+Require Import SpecCert.Smm.Delta.Preserve.Write.
+Require Import SpecCert.x86.
 
 Theorem software_transitions_preserve_inv:
   forall ev :SoftwareEvent,

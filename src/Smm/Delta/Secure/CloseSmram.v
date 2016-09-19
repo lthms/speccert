@@ -1,19 +1,16 @@
-Require Import SpecCert.LTS.
-Require Import SpecCert.Security.
-Require Import SpecCert.x86.
+Require Import Coq.Sets.Ensembles.
 
-Require Import SpecCert.Smm.Software.
+Require Import SpecCert.Address.
+Require Import SpecCert.Formalism.
+Require Import SpecCert.LTS.
 Require Import SpecCert.Smm.Delta.Behavior.
 Require Import SpecCert.Smm.Delta.Invariant.
 Require Import SpecCert.Smm.Delta.Secure.Secure_def.
+Require Import SpecCert.Smm.Software.
+Require Import SpecCert.x86.
 
 Lemma close_smram_inv_is_secure:
   inv_is_secure (software CloseSmram).
 Proof.
-  unfold inv_is_secure.
-  intros a a' Hinv Htrans.
-  unfold x86Sec, transition.
-  simpl.
-  unfold trans_cons.
-  split; [split | split]; try constructor; try (apply Htrans).
+  trivial_inv_is_secure.
 Qed.

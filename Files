@@ -8,14 +8,6 @@ src/Interval/Interval_dec.v
 src/Interval/Interval_proofs.v
 src/Interval/IntervalNotations.v
 
-src/LTS.v
-src/LTS/LTS_rec.v
-src/LTS/LTS_prop.v
-src/LTS/Trace_ind.v
-src/LTS/Trace_func.v
-src/LTS/Trace_prop.v
-src/LTS/Trace_proofs.v
-
 src/Address/Address_ind.v
 src/Address/Address_eq.v
 src/Address/Address_proofs.v
@@ -83,12 +75,7 @@ src/x86/Transition/Event/NextInstruction.v
 src/x86/Transition/Event.v
 src/x86/Transition/Transition_def.v
 src/x86/Transition.v
-src/x86/SecureTransition.v
 src/x86.v
-
-src/Defender.v
-
-src/Security.v
 
 src/Smm/Software/Software_ind.v
 src/Smm/Software/Software_eq.v
@@ -121,5 +108,12 @@ src/Smm/Delta/Secure/Read.v
 src/Smm/Delta/Secure/Write.v
 src/Smm/Delta/Secure/Secure_proofs.v
 src/Smm/Delta/Secure.v
+src/Smm/Delta/Delta_def.v
 src/Smm/Delta/Delta_proofs.v
 src/Smm/Delta.v
+
+src/Formalism/ComputingSystem.v
+src/Formalism/Security.v
+src/Formalism/Isolation.v
+src/Formalism/HSE.v
+src/Formalism.v

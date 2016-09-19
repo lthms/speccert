@@ -1,13 +1,12 @@
+Require Import Coq.Logic.Classical_Prop.
+
 Require Import SpecCert.Address.
 Require Import SpecCert.Cache.
 Require Import SpecCert.Interval.
 Require Import SpecCert.Memory.
-Require Import SpecCert.x86.
-
-Require Import SpecCert.Smm.Software.
 Require Import SpecCert.Smm.Delta.Invariant.
-
-Require Import Coq.Logic.Classical_Prop.
+Require Import SpecCert.Smm.Software.
+Require Import SpecCert.x86.
 
 Lemma update_memory_content_with_cache_content_preserves_smram_code_inv:
   forall a a' :Architecture Software,
@@ -139,6 +138,17 @@ Proof.
   apply Hsmramc.
 Qed.
 
+Lemma context_is_preserves:
+  forall h h': Architecture Software,
+    proc h = proc h'
+    -> smm_context h = smm_context h'.
+Proof.
+  intros h h' Heqp.
+  unfold smm_context.
+  rewrite Heqp.
+  reflexivity.
+Qed.
+
 Lemma update_memory_content_with_cache_content_preserves_ip_inv:
   forall a a' :Architecture Software,
   forall pa   :PhysicalAddress,
@@ -157,6 +167,7 @@ Proof.
   destruct Heqa' as [Hmc [Hproc Hcache]].
   unfold ip_inv in *.
   rewrite <- Hproc.
+  rewrite <- (context_is_preserves a a' Hproc).
   apply Hip.
 Qed.
 
@@ -206,7 +217,7 @@ Lemma update_memory_content_with_context_preserves_smram_code_inv:
   forall a a' :Architecture Software,
   forall pa   :PhysicalAddress,
     inv a
-    -> a' = update_memory_content a (phys_to_hard a pa) (context (proc a))
+    -> a' = update_memory_content a (phys_to_hard a pa) (smm_context a)
     -> smram_code_inv a'.
 Proof.
   intros a a' pa [Hsmramc [Hsmram [Hclean [Hsmrr [Hip Hsmbase]]]]] Heqa'.
@@ -220,10 +231,10 @@ Proof.
   unfold phys_to_hard, translate_physical_address.
   destruct is_inside_smram_dec.
   + destruct can_access_smram_dec.
-    * assert (context (proc a) = smm).
+    * assert (smm_context a = smm).
       unfold can_access_smram in c.
       destruct c as [Hsmm|Hfalse].
-      unfold context.
+      unfold smm_context.
       destruct is_in_smm_dec; try reflexivity.
       unfold is_in_smm in n.
       apply n in Hsmm.
@@ -266,7 +277,7 @@ Lemma update_memory_content_with_context_preserves_smramc_inv:
   forall a a' :Architecture Software,
   forall pa   :PhysicalAddress,
     inv a
-    -> a' = update_memory_content a (phys_to_hard a pa) (context (proc a))
+    -> a' = update_memory_content a (phys_to_hard a pa) (smm_context a)
     -> smramc_inv a'.
 Proof.
   intros a a' pa [Hsmramc [Hsmram [Hsmrr [Hclean [Hip Hsmbase]]]]] Heqa'.
@@ -280,7 +291,7 @@ Lemma update_memory_content_with_context_preserves_smbase_inv:
   forall a a' :Architecture Software,
   forall pa   :PhysicalAddress,
     inv a
-    -> a' = update_memory_content a (phys_to_hard a pa) (context (proc a))
+    -> a' = update_memory_content a (phys_to_hard a pa) (smm_context a)
     -> smbase_inv a'.
 Proof.
   intros a a' pa [Hsmramc [Hsmram [Hsmrr [Hclean [Hip Hsmbase]]]]] Heqa'.
@@ -294,7 +305,7 @@ Lemma update_memory_content_with_context_preserves_cache_clean_inv:
   forall a a' :Architecture Software,
   forall pa   :PhysicalAddress,
     inv a
-    -> a' = update_memory_content a (phys_to_hard a pa) (context (proc a))
+    -> a' = update_memory_content a (phys_to_hard a pa) (smm_context a)
     -> cache_clean_inv a'.
 Proof.
   intros a a' pa [Hsmramc [Hsmram [Hsmrr [Hclean Hip]]]] Heqa'.
@@ -309,7 +320,7 @@ Lemma update_memory_content_with_context_preserves_smrr_inv:
   forall a a' :Architecture Software,
   forall pa   :PhysicalAddress,
     inv a
-    -> a' = update_memory_content a (phys_to_hard a pa) (context (proc a))
+    -> a' = update_memory_content a (phys_to_hard a pa) (smm_context a)
     -> smrr_inv a'.
 Proof.
   intros a a' pa [Hsmramc [Hsmram [Hsmrr [Hclean Hip]]]] Heqa'.
@@ -323,13 +334,14 @@ Lemma update_memory_content_with_context_preserves_ip_inv:
   forall a a' :Architecture Software,
   forall pa   :PhysicalAddress,
     inv a
-    -> a' = update_memory_content a (phys_to_hard a pa) (context (proc a))
+    -> a' = update_memory_content a (phys_to_hard a pa) (smm_context a)
     -> ip_inv a'.
 Proof.
   intros a a' pa [Hsmramc [Hsmram [Hsmrr [Hclean [Hip Hsmbase]]]]] Heqa'.
   apply update_memory_changes_only_memory in Heqa' as [Hmc [Hproc Hother]].
   unfold ip_inv.
   rewrite <- Hproc.
+  rewrite <- (context_is_preserves a a' Hproc).
   exact Hip.
 Qed.
 
@@ -337,7 +349,7 @@ Lemma update_memory_content_with_context_preserves_inv:
   forall a a' :Architecture Software,
   forall pa   :PhysicalAddress,
     inv a
-    -> a' = update_memory_content a (phys_to_hard a pa) (context (proc a))
+    -> a' = update_memory_content a (phys_to_hard a pa) (smm_context a)
     -> inv a'.
 Proof.
   intros a a' pa.
@@ -829,6 +841,7 @@ Proof.
   apply load_in_cache_from_memory_changes_only_mem_and_cache in Heqa' as [Hproc Hother].
   unfold ip_inv.
   rewrite <- Hproc.
+  rewrite <- (context_is_preserves a a' Hproc).
   exact Hip.
 Qed.
 
@@ -855,7 +868,7 @@ Lemma update_cache_content_with_context_preserves_smramc_inv:
   forall a a' :Architecture Software,
   forall pa   :PhysicalAddress,
     inv a -> (is_inside_smram pa -> is_in_smm (proc a))
-    -> a' = update_cache_content a pa (context (proc a))
+    -> a' = update_cache_content a pa (smm_context a)
     -> smramc_inv a'.
 Proof.
   intros a a' pa [Hsmramc [Hsmram [Hsmrr [Hclean [Hip Hsmbase]]]]] Hin_smm Heqa'.
@@ -869,7 +882,7 @@ Lemma update_cache_content_with_context_preserves_smrr_inv:
   forall a a' :Architecture Software,
   forall pa   :PhysicalAddress,
     inv a -> (is_inside_smram pa -> is_in_smm (proc a))
-    -> a' = update_cache_content a pa (context (proc a))
+    -> a' = update_cache_content a pa (smm_context a)
     -> smrr_inv a'.
 Proof.
   intros a a' pa [Hsmramc [Hsmram [Hsmrr [Hclean Hsmbase]]]] Hin_smm Heqa'.
@@ -883,7 +896,7 @@ Lemma update_cache_content_with_context_preserves_smram_code_inv:
   forall a a' :Architecture Software,
   forall pa   :PhysicalAddress,
     inv a -> (is_inside_smram pa -> is_in_smm (proc a))
-    -> a' = update_cache_content a pa (context (proc a))
+    -> a' = update_cache_content a pa (smm_context a)
     -> smram_code_inv a'.
 Proof.
   intros a a' pa [Hsmramc [Hsmram [Hsmrr [Hclean [Hip Hsmbase]]]]] Hin_smm Heqa'.
@@ -898,13 +911,14 @@ Lemma update_cache_content_with_context_preserves_ip_inv:
   forall a a' :Architecture Software,
   forall pa   :PhysicalAddress,
     inv a -> (is_inside_smram pa -> is_in_smm (proc a))
-    -> a' = update_cache_content a pa (context (proc a))
+    -> a' = update_cache_content a pa (smm_context a)
     -> ip_inv a'.
 Proof.
   intros a a' pa [Hsmramc [Hsmram [Hsmrr [Hclean [Hip Hsmbase]]]]] Hin_smm Heqa'.
   apply update_cache_changes_only_cache in Heqa' as [Hproc [Hmc Hmem]].
   unfold ip_inv.
   rewrite <- Hproc.
+  rewrite <- (context_is_preserves a a' Hproc).
   exact Hip.
 Qed.
 
@@ -912,7 +926,7 @@ Lemma update_cache_content_with_context_preserves_smbase_inv:
   forall a a' :Architecture Software,
   forall pa   :PhysicalAddress,
     inv a -> (is_inside_smram pa -> is_in_smm (proc a))
-    -> a' = update_cache_content a pa (context (proc a))
+    -> a' = update_cache_content a pa (smm_context a)
     -> smbase_inv a'.
 Proof.
   intros a a' pa [Hsmramc [Hsmram [Hsmrr [Hclean [Hip Hsmbase]]]]] Hin_smm Heqa'.
@@ -926,7 +940,7 @@ Lemma update_cache_content_with_context_preserves_cache_clean_inv:
   forall a a' :Architecture Software,
   forall pa   :PhysicalAddress,
     inv a -> (is_inside_smram pa -> is_in_smm (proc a))
-    -> a' = update_cache_content a pa (context (proc a))
+    -> a' = update_cache_content a pa (smm_context a)
     -> cache_clean_inv a'.
 Proof.
   intros a a' pa [Hsmramc [Hsmram [Hsmrr [Hclean [Hip Hsmbase]]]]] Hin_smm Heqa'.
@@ -947,7 +961,7 @@ Proof.
       simpl.
       rewrite <- a0 in Hinside'.
       apply Hin_smm in Hinside'.
-      unfold context.
+      unfold smm_context.
       destruct is_in_smm_dec.
       reflexivity.
       apply n in Hinside'.
@@ -967,7 +981,7 @@ Proof.
         apply (cache_hit_is_preserve_by_non_conflicted_update (cache a)
                                                               (cache a')
                                                               pa pa'
-                                                              (context (proc a))
+                                                              (smm_context a)
                                                               n0).
         rewrite Heqa'.
         simpl.
@@ -1000,7 +1014,7 @@ Proof.
       simpl.
       rewrite <- a0 in Hinside'.
       apply Hin_smm in Hinside'.
-      unfold context.
+      unfold smm_context.
       destruct is_in_smm_dec.
       reflexivity.
       apply n0 in Hinside'.
@@ -1020,7 +1034,7 @@ Proof.
         apply (cache_hit_is_preserve_by_non_conflicted_update (cache a)
                                                               (cache a')
                                                               pa pa'
-                                                              (context (proc a))
+                                                              (smm_context a)
                                                               n1).
         rewrite Heqa'.
         simpl.
@@ -1045,7 +1059,7 @@ Lemma update_cache_content_with_context_preserves_inv:
   forall a a' :Architecture Software,
   forall pa   :PhysicalAddress,
     inv a -> (is_inside_smram pa -> is_in_smm (proc a))
-    -> a' = update_cache_content a pa (context (proc a))
+    -> a' = update_cache_content a pa (smm_context a)
     -> inv a'.
 Proof.
   intros a a' pa.
@@ -1064,7 +1078,7 @@ Lemma load_then_update_cache_with_context_preserves_inv:
   forall a a' :Architecture Software,
   forall pa   :PhysicalAddress,
     inv a -> (is_inside_smram pa -> is_in_smm (proc a))
-    -> a' = update_cache_content (load_in_cache_from_memory a pa) pa (context (proc a))
+    -> a' = update_cache_content (load_in_cache_from_memory a pa) pa (smm_context a)
     -> inv a'.
 Proof.
   intros a a'' pa Hinv Hin_smm Heqa''.
@@ -1075,6 +1089,6 @@ Proof.
   apply load_in_cache_from_memory_changes_only_mem_and_cache in Heqa' as [Hproc _H].
   exact Hproc.
   rewrite H in Hin_smm.
-  rewrite H in Heqa''.
+  rewrite (context_is_preserves a a' H) in Heqa''.
   apply (update_cache_content_with_context_preserves_inv a' a'' pa Hinv' Hin_smm Heqa'').
 Qed.

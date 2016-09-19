@@ -1,5 +1,6 @@
 Require Import SpecCert.x86.Architecture.
 Require Import SpecCert.Address.
+Require Import SpecCert.Formalism.
 
 (* A software event is an event produced by the execution of an
  * assembly instruction.
@@ -22,12 +23,7 @@ Inductive HardwareEvent (S :Set) :=
 | Exec             :S -> HardwareEvent S
 | ReceiveInterrupt :Interrupt -> HardwareEvent S.
 
-(* We consider two kind of events, software and hardware *)
-Inductive Event (S :Set) :=
-| hardware: HardwareEvent S -> Event S
-| software: SoftwareEvent -> Event S.
+Definition x86Event (S: Set) := Event SoftwareEvent (HardwareEvent S).
 
-Arguments software {S} _.
-Arguments hardware {S} _.
 Arguments Exec {S} _.
 Arguments ReceiveInterrupt {S} _.

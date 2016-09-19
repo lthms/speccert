@@ -4,9 +4,9 @@ Require Export SpecCert.Smm.Software.Software_security.
 
 Require Import SpecCert.x86.
 
-Definition context
-           (p :ProcessorUnit)
+Definition smm_context
+           (p :Architecture Software)
            :Software :=
-  if is_in_smm_dec p
+  if is_in_smm_dec (proc p)
   then smm
   else unprivileged.
