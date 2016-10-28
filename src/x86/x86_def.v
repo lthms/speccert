@@ -2,7 +2,6 @@ Require Import Coq.Classes.RelationClasses.
 Require Import Coq.Sets.Ensembles.
 
 Require Import SpecCert.Formalism.
-Require Import SpecCert.LTS.
 Require Import SpecCert.x86.Architecture.
 Require Import SpecCert.x86.Event.
 Require Import SpecCert.x86.Transition.
