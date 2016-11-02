@@ -11,7 +11,7 @@ Proof.
 Qed.
 
 Lemma update_memory_2 {S:Set}: forall m:Memory S, forall k k':HardwareAddress, forall c:S,
-        ~ hardware_addr_eq k k'
+        ~ addr_eq k k'
         -> find_in_memory m k' = find_in_memory (update_in_memory m k c) k'.
 Proof.
   intros m k k' c.

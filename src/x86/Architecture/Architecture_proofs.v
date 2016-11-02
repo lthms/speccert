@@ -78,7 +78,7 @@ Lemma update_ha_in_memory_changes_only_ha {S :Set}:
   forall a      :Architecture S,
   forall ha ha' :HardwareAddress,
   forall c      :S,
-    ~ hardware_addr_eq ha ha'
+    ~ addr_eq ha ha'
     -> find_memory_content a ha' = find_memory_content (update_memory_content a ha c) ha'.
 Proof.
   intros a ha ha' c Hdiff.

@@ -8,18 +8,9 @@ src/Interval/Interval_dec.v
 src/Interval/Interval_proofs.v
 src/Interval/IntervalNotations.v
 
-src/Address/Address_ind.v
-src/Address/Address_eq.v
-src/Address/Address_proofs.v
-src/Address/PhysicalAddress_def.v
-src/Address/PhysicalAddress_prop.v
-src/Address/PhysicalAddress_dec.v
-src/Address/HardwareAddress_ind.v
-src/Address/HardwareAddress_prop.v
-src/Address/HardwareAddress_dec.v
-src/Address/HardwareAddress_eq.v
-src/Address/HardwareAddress_func.v
-src/Address/AddressSpace.v
+src/Address/Address.v
+src/Address/PhysicalAddress.v
+src/Address/HardwareAddress.v
 src/Address.v
 
 src/Map/Map_def.v
