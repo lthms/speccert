@@ -17,24 +17,14 @@ Definition cache_hit_dec
            (pa:PhysicalAddress)
            : {cache_hit cache pa}+{~ cache_hit cache pa}.
 refine (
-    decide_dec (addr_eq_dec pa
-                            (tag
-                               (_IndexMap.find_in_map cache
-                                               (phys_to_index pa)
-                               )
-                            )
+    decide_dec (phys_addr_eq_dec pa
+                                 (tag
+                                    (_IndexMap.find_in_map cache
+                                                    (phys_to_index pa)
+                                    )
+                                 )
                )
-  ).
-+ unfold cache_hit.
-  induction (_IndexMap.find_in_map cache (phys_to_index pa))
-    as [dirty cont tag].
-  simpl in a.
-  trivial.
-+ unfold cache_hit.
-  induction (_IndexMap.find_in_map cache (phys_to_index pa))
-    as [dirty cont tag].
-  simpl in n.
-  trivial.
+  ); unfold cache_hit; simpl in *; trivial.
 Defined.
 
 Definition cache_location_is_dirty

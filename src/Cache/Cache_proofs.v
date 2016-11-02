@@ -217,7 +217,10 @@ Proof.
              ) as cache''.
     rewrite _IndexMap.add_1 in Heqcache''.
     rewrite Heqcache'' in Hexf.
-    intuition.
+    simpl in Hexf.
+    apply addr_eq_sym in Hexf.
+    apply Hdiff in Hexf.
+    exact Hexf.
   + unfold load_in_cache in Hexf.
     rewrite Heq in Hexf.
     unfold cache_hit in Hexf.
@@ -228,7 +231,9 @@ Proof.
              ) as cache''.
     rewrite _IndexMap.add_1 in Heqcache''.
     rewrite Heqcache'' in Hexf.
-    intuition.
+    apply addr_eq_sym in Hexf.
+    apply Hdiff in Hexf.
+    exact Hexf.
 Qed.
 
 Lemma cache_stays_well_formed {S :Set}:

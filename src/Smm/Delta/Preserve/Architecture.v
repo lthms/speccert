@@ -8,6 +8,27 @@ Require Import SpecCert.Smm.Delta.Invariant.
 Require Import SpecCert.Smm.Software.
 Require Import SpecCert.x86.
 
+Lemma hardware_dram_cast
+      (pa pa': PhysicalAddress)
+      : addr_eq (dram pa) (dram pa') <-> addr_eq pa pa'.
+Proof.
+  split.
+  + intro Heq.
+    induction pa; induction pa'; unfold dram in *; unfold addr_eq in *;
+      unfold address_offset in *; unfold address_scope in *.
+    destruct Heq as [Heq Heq'].
+    split.
+    * exact Heq.
+    * apply memory_map_singleton.
+  + intro Heq.
+    induction pa; induction pa'; unfold dram in *; unfold addr_eq in *;
+      unfold address_offset in *; unfold address_scope in *.
+    destruct Heq as [Heq Heq'].
+    split.
+    * exact Heq.
+    * reflexivity.
+Qed.
+
 Lemma update_memory_content_with_cache_content_preserves_smram_code_inv:
   forall a a' :Architecture Software,
   forall pa   :PhysicalAddress,
@@ -45,12 +66,11 @@ Proof.
     induction c'; [| inversion Heqc' ].
     rewrite Heqa'.
     destruct (hardware_addr_eq_dec ha (dram addr)).
-    * apply hardware_addr_eq_eq in h.
-      rewrite h.
+    * apply addr_eq_eq in a0.
+      rewrite a0.
       rewrite update_ha_in_memory_is_ha.
       trivial.
-    * Print update_ha_in_memory_changes_only_ha.
-      rewrite <- (update_ha_in_memory_changes_only_ha a ha (dram addr) smm); [
+    * rewrite <- (update_ha_in_memory_changes_only_ha a ha (dram addr) smm); [
       | trivial
       ].
       apply Hsmram; trivial.
@@ -60,15 +80,16 @@ Proof.
     destruct (is_inside_smram_dec pa'); [ intuition |].
     rewrite Heqha in *.
     rewrite Heqa'.
-    assert (~ hardware_addr_eq (dram pa') (dram addr)).
+    assert (~ addr_eq (dram pa') (dram addr)).
     * unfold not; intro Hfalse.
-      unfold hardware_addr_eq in Hfalse.
-      destruct Hfalse as [_ Heq].
-      simpl in Heq.
       assert (~ addr_eq pa' addr).
       unfold is_inside_smram in *.
+      apply or_not_and.
+      left.
       apply x1_not_in_interval_x2_in_interval_x1_neq_x2 with (i:=smram_space); trivial.
-      intuition.
+      apply hardware_dram_cast in Hfalse.
+      apply H in Hfalse.
+      exact Hfalse.
     * rewrite <- update_ha_in_memory_changes_only_ha.
       apply Hsmram; trivial.
       trivial.
@@ -246,31 +267,38 @@ Proof.
       rewrite Hsmramc in Hfalse.
       discriminate.
       rewrite H.
-      destruct (addr_eq_dec pa pa').
+      destruct (phys_addr_eq_dec pa pa').
       apply addr_eq_eq in a0.
       rewrite a0.
       apply _HardAddrMap.add_1.
       rewrite <- _HardAddrMap.add_2.
       apply Hsmram.
       exact Hinside'.
-      unfold hardware_addr_eq.
-      intuition.
+      intro Hfalse.
+      apply hardware_dram_cast in Hfalse.
+      apply n in Hfalse.
+      exact Hfalse.
     * rewrite <- _HardAddrMap.add_2.
       apply Hsmram.
       exact Hinside'.
-      unfold hardware_addr_eq.
+      unfold addr_eq.
       unfold is_same_memory.
       intuition.
+      unfold dram in H1; unfold vga in H1; unfold address_scope in H1; induction pa; induction pa'.
+      discriminate H1.
   + assert (~ addr_eq pa pa').
+    apply or_not_and.
+    left.
     apply x1_not_in_interval_x2_in_interval_x1_neq_x2 with (i:=smram_space).
     exact n.
     exact Hinside'.
     rewrite <- _HardAddrMap.add_2.
     apply Hsmram.
     apply Hinside'.
-    unfold hardware_addr_eq.
-    unfold hardware_address.
-    intuition.
+    intro Hfalse.
+    apply hardware_dram_cast in Hfalse.
+    apply H in Hfalse.
+    exact Hfalse.
 Qed.
 
 Lemma update_memory_content_with_context_preserves_smramc_inv:
@@ -429,7 +457,7 @@ Proof.
     unfold global_update_in_cache.
     destruct (cache_hit_dec (cache ax) pa) as [Hcache_hit_pa|Hnot_cache_hit_pa].
     * unfold update_in_cache, find_in_cache.
-      destruct (addr_eq_dec pa pa').
+      destruct (phys_addr_eq_dec pa pa').
       - apply addr_eq_eq in a0.
         rewrite a0.
         assert (cache_hit 
@@ -510,7 +538,7 @@ Proof.
         assert (cache_hit (global_update_in_cache (cache ax) pa c') pa); [
             apply (global_update_in_cache_cache_hit (cache ax) pa) |].
         rewrite <- Heqcache' in H0.
-        destruct (addr_eq_dec pa pa').
+        destruct (phys_addr_eq_dec pa pa').
         (* case addr_eq *)
         apply addr_eq_eq in a0.
         rewrite a0 in Heqc'.
@@ -602,7 +630,7 @@ Proof.
       rewrite Heqa'; rewrite Heqcache'.
       unfold find_cache_content, find_in_cache, update_cache_content, update_in_cache.
       simpl.
-      destruct (addr_eq_dec pa pa').
+      destruct (phys_addr_eq_dec pa pa').
       apply addr_eq_eq in a0.
       rewrite a0.
       assert (cache_hit 
@@ -670,7 +698,7 @@ Proof.
       rewrite Heqa'; rewrite Heqcache'.
       unfold find_cache_content, find_in_cache, load_in_cache, update_in_cache.
       simpl.
-      destruct (addr_eq_dec pa pa').
+      destruct (phys_addr_eq_dec pa pa').
       apply addr_eq_eq in a0.
       rewrite a0.
       assert (cache_hit 
@@ -735,6 +763,8 @@ Proof.
         | exact Hinside'
         | exact H3 ].
     * assert (~ addr_eq pa pa'); [
+        apply or_not_and;
+        left;
         apply (x1_not_in_interval_x2_in_interval_x1_neq_x2 _ _ _ n0 Hinside') |].
       destruct (index_dec (phys_to_index pa) (phys_to_index pa')).
       - assert (~ cache_hit (cache a') pa'); [| intuition ].
@@ -954,7 +984,7 @@ Proof.
     unfold find_in_cache.
     destruct cache_hit_dec; [| intuition ].
     rewrite Heqa'; simpl.
-    destruct (addr_eq_dec pa pa').
+    destruct (phys_addr_eq_dec pa pa').
     * apply addr_eq_eq in a0.
       rewrite <- a0.
       rewrite _IndexMap.add_1.
@@ -986,16 +1016,16 @@ Proof.
         rewrite Heqa'.
         simpl.
         unfold global_update_in_cache.
-        destruct cache_hit_dec; [| intuition ].
-        unfold update_in_cache.
-        reflexivity.
-        apply n1 in c.
-        destruct c.
-        exact c0.
+        destruct cache_hit_dec; [
+          unfold update_in_cache;
+          reflexivity
+        | apply n1 in c;
+          destruct c;
+          exact c0 ].
+        exact Hcache_hit'.
         assert (find_cache_content a pa' = Some (content (_IndexMap.find_in_map (cache a) (phys_to_index pa')))).
         unfold find_cache_content, find_in_cache.
-        destruct cache_hit_dec.
-        reflexivity.
+        destruct cache_hit_dec; [ reflexivity |].
         apply n1 in H; destruct H.
         rewrite <- H0.
         rewrite Hclean; [
@@ -1007,7 +1037,7 @@ Proof.
     unfold find_in_cache.
     destruct cache_hit_dec; [| intuition ].
     rewrite Heqa'; simpl.
-    destruct (addr_eq_dec pa pa').
+    destruct (phys_addr_eq_dec pa pa').
     * apply addr_eq_eq in a0.
       rewrite <- a0.
       rewrite _IndexMap.add_1.

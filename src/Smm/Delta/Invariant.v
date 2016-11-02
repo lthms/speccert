@@ -14,7 +14,7 @@ Definition smramc_inv :=
 
 Definition smram_code_inv :=
   fun (a:Architecture Software) =>
-    forall addr:Address,
+    forall addr:PhysicalAddress,
       is_inside_smram addr -> find_memory_content a (dram addr) = smm.
 
 Definition smrr_inv :=

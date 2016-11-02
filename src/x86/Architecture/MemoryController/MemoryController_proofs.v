@@ -57,27 +57,3 @@ Proof.
   destruct Hsmramc'.
   trivial.
 Qed.
-
-(* WARNING: Temporary Lemma that will not be true with address remapping *)
-Lemma pa_neq_ha_translate_diff:
-  forall mc     :MemoryController,
-  forall smiact :bool,
-  forall pa     :PhysicalAddress,
-  forall ha     :HardwareAddress,
-    pa <> hardware_address ha
-    -> translate_physical_address mc smiact pa <> ha.
-Proof.
-  intros mc smiact pa ha Hdiff.
-  unfold translate_physical_address.
-  destruct (is_inside_smram_dec pa).
-  + destruct (can_access_smram_dec mc smiact);
-      intuition;
-      rewrite <-H in Hdiff;
-      unfold hardware_address in Hdiff;
-      intuition.
-  + unfold not.
-    unfold not in Hdiff.
-    intro Hdram.
-    rewrite <- Hdram in Hdiff.
-    simpl; intuition.
-Qed.
