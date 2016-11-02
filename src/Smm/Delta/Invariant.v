@@ -46,7 +46,7 @@ Definition inv :=
     /\ smbase_inv a.
 
 Definition partial_preserve
-           (ev   :x86Event Software)
+           (ev   :x86Event)
            (prop :Architecture Software -> Prop)
            (i    :Architecture Software -> Prop) :=
   forall h h': Architecture Software,
@@ -69,7 +69,7 @@ Definition software_partial_preserve
     -> i h'.
 
 Definition preserve
-           (ev :x86Event Software)
+           (ev :x86Event)
            (i  :Architecture Software -> Prop) :=
   forall h h': Architecture Software,
     inv h
@@ -88,7 +88,7 @@ Definition software_preserve
     -> i h'.
 
 Definition preserve_inv
-           (ev:x86Event Software) :=
+           (ev:x86Event) :=
   forall h h': Architecture Software,
     inv h
     -> x86_precondition h ev
@@ -105,7 +105,7 @@ Definition software_preserve_inv
     -> inv h'.
 
 Definition partial_preserve_inv
-           (ev    :x86Event Software)
+           (ev    :x86Event)
            (prop :Architecture Software -> Prop)
   := forall h h': Architecture Software,
     inv h

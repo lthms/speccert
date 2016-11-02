@@ -10,10 +10,11 @@ Require Import SpecCert.Smm.Software.
 Require Import SpecCert.x86.
 Require Import SpecCert.Cache.
 
-Lemma read_inv_is_secure: forall pa:PhysicalAddress,
-  inv_is_secure (software (Read pa)).
+Lemma read_inv_is_secure:
+  forall (pa:PhysicalAddress) (v: Value),
+    inv_is_secure (software (Read pa v)).
 Proof.
-  intro pa.
+  intros pa v.
   trivial_inv_is_secure.
 Qed.
 
@@ -78,38 +79,34 @@ Proof.
 Qed.
 
 Lemma exec_inv_is_secure:
-  forall o :Software,
-    inv_is_secure (hardware (Exec o)).
+  forall v: Value,
+    inv_is_secure (hardware (Exec v)).
 Proof.
   unfold inv_is_secure.
-  intros o a a' Hinv Hpre Hpost.
+  intros v a a' Hinv Hpre Hpost.
   unfold software_step_isolation, software_tampering, fetched, is.
   intros t u Htrusted Huntrusted.
   apply or_not_and.
-  unfold x86_precondition, exec_pre in Hpre.
+  unfold x86_precondition in Hpre.
   unfold In, SmmTCB in Htrusted.
   unfold In, SmmTCB in Huntrusted.
   assert (u = unprivileged) as Hequ; [induction u; [intuition|trivial]|].
-  unfold find_address_content in Hpre.
+  unfold find_address_content.
   case_eq (smm_context a); intro Heqc.
-  + case_eq (resolve_cache_strategy (proc a) (ip (proc a))); intro Heqstrat; rewrite Heqstrat in Hpre.
-    * inversion Hpre.
-      rewrite Htrusted.
-      rewrite Hequ.
+  + case_eq (resolve_cache_strategy (proc a) (ip (proc a))); intro Heqstrat.
+    * rewrite Hequ.
       right.
       rewrite (fetch_memory_is_secure a Hinv Heqc).
       unfold not.
       intro Hfalse.
       discriminate Hfalse.
-    * right; destruct (cache_hit_dec); inversion Hpre.
+    * right; destruct (cache_hit_dec).
       - rewrite (fetch_cache_is_secure a Hinv Heqc c Heqstrat).
         exact Huntrusted.
       - rewrite (fetch_memory_is_secure a Hinv Heqc).
-        rewrite Hequ.
-        unfold not.
-        intro Hfalse.
-        discriminate Hfalse.
-    * discriminate.
+        exact Huntrusted.
+    * right.
+      intro P; exact P.
   + left.
     rewrite Htrusted.
     unfold not.

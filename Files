@@ -1,4 +1,5 @@
 src/Utils.v
+src/Equality.v
 
 src/Interval.v
 src/Interval/Interval_ind.v
@@ -8,6 +9,7 @@ src/Interval/Interval_dec.v
 src/Interval/Interval_proofs.v
 src/Interval/IntervalNotations.v
 
+src/Address/AddressSpace.v
 src/Address/Address.v
 src/Address/PhysicalAddress.v
 src/Address/HardwareAddress.v
@@ -30,6 +32,7 @@ src/Memory.v
 
 src/x86/x86_def.v
 src/x86/Event.v
+src/x86/Value.v
 src/x86/Architecture/MemoryController.v
 src/x86/Architecture/MemoryController/MemoryController_rec.v
 src/x86/Architecture/MemoryController/MemoryController_eq.v
