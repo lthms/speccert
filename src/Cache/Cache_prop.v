@@ -3,24 +3,25 @@ Require Import Coq.Bool.Bool.
 Require Import SpecCert.Cache.Cache_def.
 Require Import SpecCert.Address.
 Require Import SpecCert.Utils.
+Require Import SpecCert.Map.
 
 Definition cache_hit
-           {S     :Set}
+           {S     :Type}
            (cache :Cache S)
            (pa    :PhysicalAddress)
            :Prop :=
-  addr_eq pa (tag (_IndexMap.find_in_map cache (phys_to_index pa))).
+  addr_eq pa (tag (find_in_map cache (phys_to_index pa))).
 
 Definition cache_hit_dec
-           {S     :Set}
+           {S     :Type}
            (cache :Cache S)
            (pa:PhysicalAddress)
            : {cache_hit cache pa}+{~ cache_hit cache pa}.
 refine (
     decide_dec (phys_addr_eq_dec pa
                                  (tag
-                                    (_IndexMap.find_in_map cache
-                                                    (phys_to_index pa)
+                                    (find_in_map cache
+                                                 (phys_to_index pa)
                                     )
                                  )
                )
@@ -28,13 +29,13 @@ refine (
 Defined.
 
 Definition cache_location_is_dirty
-           {S     :Set}
+           {S     :Type}
            (cache :Cache S)
            (pa    :PhysicalAddress) :=
-  dirty (_IndexMap.find_in_map cache (phys_to_index pa)) = true.
+  dirty (find_in_map cache (phys_to_index pa)) = true.
 
 Definition cache_location_is_dirty_dec
-           {S     :Set}
+           {S     :Type}
            (cache :Cache S)
            (pa    :PhysicalAddress)
   : {cache_location_is_dirty cache pa}+{~ cache_location_is_dirty cache pa}.
@@ -42,7 +43,7 @@ refine (
     decide_dec (
         bool_dec
           (dirty
-             (_IndexMap.find_in_map cache (phys_to_index pa))
+             (find_in_map cache (phys_to_index pa))
           )
           true
       )
@@ -52,7 +53,7 @@ trivial.
 Defined.
 
 Definition cache_is_well_formed
-           {S     :Set}
+           {S     :Type}
            (cache :Cache S) :=
   forall pa:PhysicalAddress,
-    phys_to_index pa = phys_to_index (tag (_IndexMap.find_in_map cache (phys_to_index pa))).
+    phys_to_index pa = phys_to_index (tag (find_in_map cache (phys_to_index pa))).

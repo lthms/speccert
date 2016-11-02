@@ -36,8 +36,9 @@ Definition read_post
     | SmrrHit    => a' = read_smrrhit_post a pa
     end.
 
+(*
 Definition exec_pre
-           {S :Set}
-           (o :S) :=
+           {S :Type} :=
   fun (a :Architecture S) =>
-    find_address_content a (ip (proc a)) = Some o.
+    find_address_content a (ip (proc a)) = Some (context a).
+*)

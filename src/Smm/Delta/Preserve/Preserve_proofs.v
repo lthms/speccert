@@ -18,8 +18,8 @@ Proof.
   induction ev; unfold software_preserve_inv; intros a a' Hinv Hsmm Htrans.
   + apply (disable_interrupt_inv a a' Hinv Htrans).
   + apply (enable_interrupt_inv a a' Hinv Htrans).
-  + eapply (read_inv _ a a' Hinv Htrans).
-  + apply (write_inv _ a a' Hinv Htrans).
+  + eapply (read_inv _ _ a a' Hinv Htrans).
+  + apply (write_inv _ _ a a' Hinv Htrans).
   + apply (open_smram_inv a a' Hinv Htrans).
   + apply (close_smram_inv a a' Hinv Htrans).
   + apply (lock_smramc_inv a a' Hinv Htrans).

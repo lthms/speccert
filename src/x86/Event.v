@@ -1,4 +1,5 @@
 Require Import SpecCert.x86.Architecture.
+Require Import SpecCert.x86.Value.
 Require Import SpecCert.Address.
 Require Import SpecCert.Formalism.
 
@@ -8,8 +9,8 @@ Require Import SpecCert.Formalism.
 Inductive SoftwareEvent :=
 | DisableInterrupt :SoftwareEvent
 | EnableInterrupt  :SoftwareEvent
-| Read             :PhysicalAddress -> SoftwareEvent
-| Write            :PhysicalAddress -> SoftwareEvent
+| Read             :PhysicalAddress -> Value -> SoftwareEvent
+| Write            :PhysicalAddress -> Value -> SoftwareEvent
 | OpenSmram        :SoftwareEvent
 | CloseSmram       :SoftwareEvent
 | LockSmramc       :SoftwareEvent
@@ -19,11 +20,8 @@ Inductive SoftwareEvent :=
  * to *something*. It can interrupt the normal execution flow of an
  * assembly instruction, for instance
  *)
-Inductive HardwareEvent (S :Set) :=
-| Exec             :S -> HardwareEvent S
-| ReceiveInterrupt :Interrupt -> HardwareEvent S.
+Inductive HardwareEvent :=
+| Exec             :Value -> HardwareEvent
+| ReceiveInterrupt :Interrupt -> HardwareEvent.
 
-Definition x86Event (S: Set) := Event SoftwareEvent (HardwareEvent S).
-
-Arguments Exec {S} _.
-Arguments ReceiveInterrupt {S} _.
+Definition x86Event := Event SoftwareEvent HardwareEvent.

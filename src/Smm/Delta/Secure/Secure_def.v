@@ -8,10 +8,10 @@ Require Import SpecCert.x86.
 
 Definition fetched
            (h:  Architecture Software)
-           (ev: x86Event Software)
+           (ev: x86Event)
   : option Software :=
   match ev with
-  | hardware (Exec o) => Some o
+  | hardware (Exec _) => find_address_content h (ip (proc h))
   | _ => None
   end.
 
@@ -36,7 +36,7 @@ Definition software_inv_is_secure
     -> software_step_isolation smm_context fetched SmmTCB a (software ev).
 
 Definition inv_is_secure
-           (ev:x86Event Software) :=
+           (ev:x86Event) :=
   forall a a' :Architecture Software,
     inv a
     -> x86_precondition a ev

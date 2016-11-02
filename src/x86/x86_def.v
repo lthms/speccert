@@ -8,7 +8,7 @@ Require Import SpecCert.x86.Transition.
 
 Definition x86CS
            (S: Set)
-  := ComputingSystem (Architecture S) SoftwareEvent (HardwareEvent S).
+  := ComputingSystem (Architecture S) SoftwareEvent HardwareEvent.
 
 Definition MINx86
            {S:       Set}

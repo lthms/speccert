@@ -2,67 +2,63 @@ Require Import SpecCert.Cache.Cache_def.
 Require Import SpecCert.Cache.Cache_prop.
 Require Import SpecCert.Cache.Cache_func.
 Require Import SpecCert.Address.
+Require Import SpecCert.Map.
 
-Lemma update_in_cache_cache_hit {S :Set}:
-  forall cache :Cache S,
-  forall pa    :PhysicalAddress,
-  forall owner :S,
-  forall h     :cache_hit cache pa,
-    cache_hit (update_in_cache cache pa owner h) pa.
+Lemma update_in_cache_cache_hit
+      {S:      Type}
+      (cache : Cache S)
+      (pa:     PhysicalAddress)
+      (owner:  S)
+      (h:      cache_hit cache pa)
+  : cache_hit (update_in_cache cache pa owner h) pa.
 Proof.
-  intros cache pa cont h.
   unfold cache_hit.
   unfold update_in_cache.
-  rewrite _IndexMap.add_1.
+  rewrite add_1.
   apply addr_eq_refl.
 Qed.
 
-Lemma load_in_cache_cache_hit {S :Set}:
-  forall cache :Cache S,
-  forall pa    :PhysicalAddress,
-  forall owner :S,
-  forall h     :~cache_hit cache pa,
-    cache_hit (load_in_cache cache pa owner h) pa.
+Lemma load_in_cache_cache_hit
+      {S:     Type}
+      (cache: Cache S)
+      (pa:    PhysicalAddress)
+      (owner: S)
+      (h:     ~cache_hit cache pa)
+  : cache_hit (load_in_cache cache pa owner h) pa.
 Proof.
-  intros cache pa cont h.
   unfold cache_hit.
   unfold load_in_cache.
-  rewrite _IndexMap.add_1.
+  rewrite add_1.
   apply addr_eq_refl.
 Qed.
 
-Lemma global_update_in_cache_cache_hit {S :Set}:
-  forall cache :Cache S,
-  forall pa    :PhysicalAddress,
-  forall owner :S,
-    cache_hit (global_update_in_cache cache pa owner) pa.
+Lemma global_update_in_cache_cache_hit
+      {S:     Type}
+      (cache: Cache S)
+      (pa:    PhysicalAddress)
+      (owner: S)
+  : cache_hit (global_update_in_cache cache pa owner) pa.
 Proof.
-  intros cache pa cont.
   unfold global_update_in_cache.
   destruct (cache_hit_dec cache pa).
   + apply update_in_cache_cache_hit.
   + apply load_in_cache_cache_hit.
 Qed.
 
-Lemma update_is_find_in_cache {S :Set}:
-  forall cache :Cache S,
-  forall pa    :PhysicalAddress,
-  forall owner :S,
-    find_in_cache (global_update_in_cache cache pa owner) pa = Some owner.
+Lemma update_is_find_in_cache
+      {S:     Set}
+      (cache: Cache S)
+      (pa:    PhysicalAddress)
+      (cont: S)
+  : find_in_cache (global_update_in_cache cache pa cont) pa = Some cont.
 Proof.
-  intros cache pa cont.
   unfold find_in_cache, global_update_in_cache.
   destruct (cache_hit_dec cache pa).
   + destruct cache_hit_dec.
     * unfold update_in_cache.
-      rewrite _IndexMap.add_1
-      with (m:=cache)
-             (k:=phys_to_index pa)
-             (c := {|
-                    dirty := true;
-                    content := cont;
-                    tag := pa
-                  |}).
+      rewrite (add_1 cache (phys_to_index pa) ({| dirty := true
+                                                ; content := cont
+                                                ; tag := pa |})).
       reflexivity.
     * exfalso.
       unfold not in n.
@@ -71,7 +67,7 @@ Proof.
       trivial.
   + destruct cache_hit_dec.
     * unfold load_in_cache.
-      rewrite _IndexMap.add_1.
+      rewrite add_1.
       simpl.
       reflexivity.
     * exfalso.
@@ -81,20 +77,21 @@ Proof.
       trivial.
 Qed.
 
-Lemma same_index_cache_hit_same_address {S :Set}:
-  forall pa pa' :PhysicalAddress,
-  forall cache  :Cache S,
-    index_eq (phys_to_index pa) (phys_to_index pa')
+Lemma same_index_cache_hit_same_address
+      {S:      Set}
+      (pa pa': PhysicalAddress)
+      (cache:  Cache S)
+  : index_eq (phys_to_index pa) (phys_to_index pa')
     -> cache_hit cache pa
     -> cache_hit cache pa'
     -> addr_eq pa pa'.
 Proof.
-  intros pa pa' cache Heq Hhit Hhit'.
+  intros Heq Hhit Hhit'.
   apply eq_addr_eq.
   apply index_eq_eq in Heq.
   unfold cache_hit in *.
   rewrite Heq in Hhit.
-  case_eq (_IndexMap.find_in_map cache (phys_to_index pa')).
+  case_eq (find_in_map cache (phys_to_index pa')).
   intros.
   rewrite H in Hhit.
   rewrite H in Hhit'.
@@ -105,44 +102,54 @@ Proof.
   reflexivity.
 Qed.
 
-Lemma cache_hit_is_preserve_by_non_conflicted_update {S :Set}:
-  forall cache cache' :Cache S,
-  forall pa pa'       :PhysicalAddress,
-  forall o            :S,
-    ~index_eq (phys_to_index pa) (phys_to_index pa')
-    -> cache' = global_update_in_cache cache pa o
+Lemma cache_hit_is_preserve_by_non_conflicted_update
+      {S:            Set}
+      (cache cache': Cache S)
+      (pa pa':       PhysicalAddress)
+      (c:            S)
+  : ~index_eq (phys_to_index pa) (phys_to_index pa')
+    -> cache' = global_update_in_cache cache pa c
     -> cache_hit cache' pa'
     -> cache_hit cache pa'.
 Proof.
-  intros cache cache' pa pa' c Hind Hup Hhit.
+  intros Hind Hup Hhit.
   unfold global_update_in_cache in Hup.
   unfold cache_hit.
   destruct cache_hit_dec.
   + unfold update_in_cache in Hup.
-    rewrite _IndexMap.add_2 with (k:=phys_to_index pa)
-                                   (c:={| dirty := true; content := c; tag := pa |}).
+    rewrite (add_2 cache
+                   (phys_to_index pa)
+                   (phys_to_index pa')
+                   ({| dirty := true
+                     ; content := c
+                     ; tag := pa |})).
     * rewrite <- Hup.
       trivial.
     * trivial.
   + unfold load_in_cache in Hup.
-    rewrite _IndexMap.add_2 with (k:=phys_to_index pa)
-                                   (c:={| dirty := false; content := c; tag := pa |}).
+    rewrite (add_2 cache
+                   (phys_to_index pa)
+                   (phys_to_index pa')
+                   ({| dirty := false
+                     ; content := c
+                     ; tag := pa |})).
     * rewrite <- Hup.
       trivial.
     * trivial.
 Qed.
 
-Lemma global_update_not_cache_preserve {S :Set}:
-  forall cache cache' :Cache S,
-  forall pa pa'       :PhysicalAddress,
-  forall o            :S,
-    ~cache_hit cache pa'
+Lemma global_update_not_cache_preserve
+      {S:            Set}
+      (cache cache': Cache S)
+      (pa pa':       PhysicalAddress)
+      (c:            S)
+  : ~cache_hit cache pa'
     -> ~addr_eq pa pa'
     -> ~index_eq (phys_to_index pa) (phys_to_index pa')
-    -> cache' = global_update_in_cache cache pa o
+    -> cache' = global_update_in_cache cache pa c
     -> ~cache_hit cache' pa'.
 Proof.
-  intros cache cache' pa pa' c Hhit Haddr Hind Heq.
+  intros Hhit Haddr Hind Heq.
   unfold not; intro Hhit'.
   unfold global_update_in_cache in Heq.
   destruct cache_hit_dec in Heq.
@@ -150,20 +157,19 @@ Proof.
     rewrite Heq in Hhit'.
     unfold cache_hit in Hhit'.
     remember (
-        _IndexMap.find_in_map
-          (_IndexMap.add_in_map cache (phys_to_index pa)
-                                {| dirty := true; content := c; tag := pa |})
+        find_in_map
+          (add_in_map cache
+                      (phys_to_index pa)
+                      {| dirty := true; content := c; tag := pa |})
           (phys_to_index pa')
       ) as cc.
-    rewrite <- _IndexMap.add_2 with (k:=phys_to_index pa)
-                                     (c:=
-                                        {|
-                                          dirty := true;
-                                          content := c;
-                                          tag := pa
-                                        |}
-                                     )
-      in Heqcc.
+    rewrite <- (add_2 cache
+                      (phys_to_index pa)
+                      (phys_to_index pa')
+                      ({| dirty := true
+                        ; content := c
+                        ; tag := pa
+                        |})) in Heqcc.
     rewrite Heqcc in Hhit'.
     unfold cache_hit in Hhit.
     intuition.
@@ -172,19 +178,18 @@ Proof.
     rewrite Heq in Hhit'.
     unfold cache_hit in Hhit'.
     remember (
-        _IndexMap.find_in_map
-          (_IndexMap.add_in_map cache (phys_to_index pa)
-                                {| dirty := false; content := c; tag := pa |})
+        find_in_map
+          (add_in_map cache
+                      (phys_to_index pa)
+                      {| dirty := false; content := c; tag := pa |})
           (phys_to_index pa')
       ) as cc.
-    rewrite <- _IndexMap.add_2 with (k:=phys_to_index pa)
-                                     (c:=
-                                        {|
-                                          dirty := false;
-                                          content := c;
-                                          tag := pa
-                                        |}
-                                     )
+    rewrite <- (add_2 cache
+                      (phys_to_index pa)
+                      (phys_to_index pa')
+                      ({| dirty := false
+                        ; content := c
+                        ; tag := pa |}))
       in Heqcc.
     rewrite Heqcc in Hhit'.
     unfold cache_hit in Hhit.
@@ -210,12 +215,13 @@ Proof.
   + unfold update_in_cache in Hexf.
     rewrite Heq in Hexf.
     unfold cache_hit in Hexf.
-    remember ( _IndexMap.find_in_map
-                 (_IndexMap.add_in_map cache (phys_to_index pa')
-                                       {| dirty := true; content := c; tag := pa |})
-                 (phys_to_index pa')
+    remember (find_in_map
+                (add_in_map cache
+                            (phys_to_index pa')
+                            {| dirty := true; content := c; tag := pa |})
+                (phys_to_index pa')
              ) as cache''.
-    rewrite _IndexMap.add_1 in Heqcache''.
+    rewrite add_1 in Heqcache''.
     rewrite Heqcache'' in Hexf.
     simpl in Hexf.
     apply addr_eq_sym in Hexf.
@@ -224,12 +230,13 @@ Proof.
   + unfold load_in_cache in Hexf.
     rewrite Heq in Hexf.
     unfold cache_hit in Hexf.
-    remember ( _IndexMap.find_in_map
-                 (_IndexMap.add_in_map cache (phys_to_index pa')
-                                       {| dirty := false; content := c; tag := pa |})
-                 (phys_to_index pa')
+    remember (find_in_map
+                (add_in_map cache
+                            (phys_to_index pa')
+                            {| dirty := false; content := c; tag := pa |})
+                (phys_to_index pa')
              ) as cache''.
-    rewrite _IndexMap.add_1 in Heqcache''.
+    rewrite add_1 in Heqcache''.
     rewrite Heqcache'' in Hexf.
     apply addr_eq_sym in Hexf.
     apply Hdiff in Hexf.
@@ -254,30 +261,32 @@ Proof.
     destruct (index_dec (phys_to_index pa) (phys_to_index pa')).
   + rewrite Hup.
     remember (phys_to_index pa') as i'.
-    remember (_IndexMap.find_in_map
-                (_IndexMap.add_in_map cache (phys_to_index pa)
-                                      {| dirty := true; content := c; tag := pa |}) i')
+    remember (find_in_map
+                (add_in_map cache
+                            (phys_to_index pa)
+                            {| dirty := true; content := c; tag := pa |}) i')
       as cc.
     apply index_eq_eq in i.
     rewrite i in Heqcc.
-    rewrite _IndexMap.add_1 in Heqcc.
+    rewrite add_1 in Heqcc.
     rewrite Heqcc.
     simpl.
     rewrite i.
     trivial.
   + rewrite Hup.
     remember (phys_to_index pa') as i'.
-    remember (_IndexMap.find_in_map
-                (_IndexMap.add_in_map cache (phys_to_index pa)
-                                      {| dirty := true; content := c; tag := pa |}) i')
+    remember (find_in_map
+                (add_in_map cache
+                            (phys_to_index pa)
+                            {| dirty := true; content := c; tag := pa |}) i')
       as cc.
     rewrite Heqi' in Heqcc.
-    rewrite <- _IndexMap.add_2 with (k:=phys_to_index pa)
-                                   (c:=
-                                      {| dirty := true;
-                                         content := c;
-                                         tag := pa
-                                      |})
+    rewrite <- (add_2 cache
+                      (phys_to_index pa)
+                      (phys_to_index pa')
+                      ({| dirty := true
+                        ; content := c
+                        ; tag := pa |}))
       in Heqcc; trivial.
     rewrite Heqcc.
     rewrite <- Hwf with (pa:= pa').
@@ -286,30 +295,32 @@ Proof.
     trivial.
   + rewrite Hup.
     remember (phys_to_index pa') as i'.
-    remember (_IndexMap.find_in_map
-                (_IndexMap.add_in_map cache (phys_to_index pa)
-                                      {| dirty := false; content := c; tag := pa |}) i')
+    remember (find_in_map
+                (add_in_map cache
+                               (phys_to_index pa)
+                               {| dirty := false; content := c; tag := pa |}) i')
       as cc.
     apply index_eq_eq in i.
     rewrite <- i in Heqcc.
-    rewrite _IndexMap.add_1 in Heqcc.
+    rewrite add_1 in Heqcc.
     rewrite Heqcc.
     simpl.
     symmetry.
     trivial.
   + rewrite Hup.
     remember (phys_to_index pa') as i'.
-    remember (_IndexMap.find_in_map
-                (_IndexMap.add_in_map cache (phys_to_index pa)
-                                      {| dirty := false; content := c; tag := pa |}) i')
+    remember (find_in_map
+                (add_in_map cache
+                            (phys_to_index pa)
+                            {| dirty := false; content := c; tag := pa |}) i')
       as cc.
     rewrite Heqi' in Heqcc.
-    rewrite <- _IndexMap.add_2 with (k:=phys_to_index pa)
-                                   (c:=
-                                      {| dirty := false;
-                                         content := c;
-                                         tag := pa
-                                      |})
+    rewrite <- (add_2 cache
+                      (phys_to_index pa)
+                      (phys_to_index pa')
+                      {| dirty := false
+                       ; content := c
+                       ; tag := pa |})
       in Heqcc; trivial.
     rewrite Heqcc.
     rewrite <- Hwf with (pa:= pa').
@@ -322,8 +333,8 @@ Lemma same_tag_means_same_index {S :Set}:
   forall cache  :Cache S,
   forall pa pa' :PhysicalAddress,
     cache_is_well_formed cache
-    -> tag (_IndexMap.find_in_map cache (phys_to_index pa))
-      = tag (_IndexMap.find_in_map cache (phys_to_index pa'))
+    -> tag (find_in_map cache (phys_to_index pa))
+      = tag (find_in_map cache (phys_to_index pa'))
     -> (phys_to_index pa) = (phys_to_index pa').
 Proof.
   intros cache pa pa' Hwf Heq.
@@ -337,8 +348,8 @@ Lemma same_index_implies_same_tag {S :Set}:
   forall cache  :Cache S,
   forall pa pa' :PhysicalAddress,
     phys_to_index pa = phys_to_index pa'
-    -> tag (_IndexMap.find_in_map cache (phys_to_index pa))
-      = tag (_IndexMap.find_in_map cache (phys_to_index pa')).
+    -> tag (find_in_map cache (phys_to_index pa))
+      = tag (find_in_map cache (phys_to_index pa')).
 Proof.
   intros cache pa pa' Hphys.
   rewrite Hphys.
@@ -372,7 +383,7 @@ Proof.
   apply (cache_hit_cache_location_address cache pa) in H.
   destruct cache_hit_dec; try intuition.
   remember (
-      tag (_IndexMap.find_in_map cache (phys_to_index pa))
+      tag (find_in_map cache (phys_to_index pa))
     ) as pa'.
   remember (
       phys_to_index pa'
