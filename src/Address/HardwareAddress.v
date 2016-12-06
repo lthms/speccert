@@ -3,6 +3,7 @@ Require Import Coq.Logic.Classical_Prop.
 
 Require Export SpecCert.Address.Address.
 Require Import SpecCert.Utils.
+Require Import SpecCert.Equality.
 
 (**
    Definition
@@ -11,6 +12,29 @@ Require Import SpecCert.Utils.
 Inductive HardwareComponent :=
 | DRAM: HardwareComponent
 | VGA:  HardwareComponent.
+
+Definition hc_eq
+           (h h': HardwareComponent)
+  : Prop :=
+  h = h'.
+
+Definition hc_eq_dec
+           (h h': HardwareComponent)
+  : { hc_eq h h'} + { ~ hc_eq h h' }.
+unfold hc_eq.
+decide equality.
+Qed.
+
+Instance hcEq : Eq HardwareComponent :=
+  { eq := hc_eq
+  ; eq_dec := hc_eq_dec
+  }.
++ unfold hc_eq; auto.
++ unfold hc_eq; auto.
++ unfold hc_eq; intros t t' t'' H1 H2; rewrite H1; rewrite H2; reflexivity.
++ unfold hc_eq; auto.
++ unfold hc_eq; auto.
+Qed.
 
 Definition HardwareAddress := Address HardwareComponent.
 
@@ -62,7 +86,7 @@ Defined.
 Definition hardware_addr_eq_dec
            (ha ha': HardwareAddress)
   : {addr_eq ha ha'}+{~ addr_eq ha ha'}.
-refine (decide_dec (addr_eq_dec scope_eq_dec ha ha')); trivial.
+refine (decide_dec (addr_eq_dec ha ha')); trivial.
 Defined.
 
 Definition is_dram_dec (ha:HardwareAddress)
@@ -96,13 +120,3 @@ refine(
 inversion a.
 apply and_not_or; split; apply or_not_and; trivial.
 Defined.
-
-(**
-   Decidable Types
- *)
-Module HCEq <: Eq with Definition A := HardwareComponent.
-  Definition A := HardwareComponent.
-  Definition eq_dec := scope_eq_dec.
-End HCEq.
-
-Module HardwareAddressDec := AddressDec HCEq.

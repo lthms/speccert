@@ -6,6 +6,7 @@ Require Import Coq.Bool.Sumbool.
 Require Import SpecCert.Interval.
 Require Import SpecCert.Address.AddressSpace.
 Require Import SpecCert.Utils.
+Require Import SpecCert.Equality.
 
 (**
 Definitions
@@ -42,49 +43,64 @@ Definition address_scope
 
 Definition addr_eq
            {T: Type}
+          `{Eq T}
            (a a':Address T) :=
   address_offset a = address_offset a'
-  /\ address_scope a = address_scope a'.
+  /\ eq (address_scope a) (address_scope a').
 
-Axiom addr_eq_eq: forall {T: Type} (a a':Address T),
+(** We use axiom here because the type Address contains an embedded proof *)
+Axiom addr_eq_eq: forall {T: Type} `{Eq T} (a a':Address T),
     addr_eq a a' -> a = a'.
-Axiom eq_addr_eq: forall {T: Type} (a a': Address T),
+
+Axiom eq_addr_eq: forall {T: Type} `{Eq T} (a a': Address T),
     a = a' -> addr_eq a a'.
 
 Lemma addr_eq_refl
       {T: Type}
+     `{Eq T}
   : forall (a: Address T), addr_eq a a.
 Proof.
   intros a.
   unfold addr_eq.
-  split; reflexivity.
+  split.
+  + reflexivity.
+  + apply eq_refl.
 Qed.
 
 Lemma addr_eq_trans
       {T :Type}
+     `{Eq T}
   : forall (a a' a'':Address T),
     addr_eq a a' -> addr_eq a' a'' -> addr_eq a a''.
 Proof.
   intros a a' a'' [Ha1 Ha2] [Ha1' Ha2'].
   unfold addr_eq in *.
-  rewrite <- Ha1'; rewrite <- Ha2'; rewrite <- Ha1; rewrite <- Ha2.
-  split; reflexivity.
+  split.
+  + rewrite <- Ha1'.
+    exact Ha1.
+  + apply (eq_trans (address_scope a)
+                    (address_scope a')
+                    (address_scope a'')
+                    Ha2
+                    Ha2').
 Qed.
 
 Lemma addr_eq_sym
       {T: Type}
+     `{Eq T}
   : forall (a a':Address T),
     addr_eq a a' -> addr_eq a' a.
 Proof.
   unfold addr_eq in *.
   intros a a' [Heq Heq'].
-  rewrite Heq; rewrite Heq'.
-  split; reflexivity.
+  split.
+  + symmetry; exact Heq.
+  + apply eq_sym; exact Heq'.
 Qed.
 
 Definition addr_eq_dec
            {T:    Type}
-           (scope_eq_dec: forall (t t' :T), {t = t'}+{t <> t'})
+          `{Eq T}
            (a a': Address T)
   : {addr_eq a a'}+{~addr_eq a a'}.
 refine (
@@ -93,24 +109,20 @@ refine (
                             _
                             _
                             (eq_nat_decide (address_offset a) (address_offset a'))
-                            (scope_eq_dec (address_scope a) (address_scope a'))
+                            (eq_dec (address_scope a) (address_scope a'))
                )
 ); unfold addr_eq; intuition.
 Defined.
 
-Parameters (T: Type)
-           (eqT: forall (t t': T), {t = t'}+{t <> t'}).
-
-Module Type Eq.
-  Parameter A: Type.
-  Parameter eq_dec: forall (a a': A), {a = a'}+{a <> a'}.
-End Eq.
-
-Module AddressDec (scope: Eq) <: DecidableType with Definition t := Address scope.A.
-  Definition t := Address scope.A.
-  Definition eq := @addr_eq scope.A.
-  Definition eq_refl := @addr_eq_refl scope.A.
-  Definition eq_sym := @addr_eq_sym scope.A.
-  Definition eq_trans := @addr_eq_trans scope.A.
-  Definition eq_dec := @addr_eq_dec scope.A scope.eq_dec.
-End AddressDec.
+Instance AddrEq
+         {T: Type}
+        `{Eq T}
+  : Eq (Address T) :=
+  { eq       := addr_eq
+  ; eq_refl  := addr_eq_refl
+  ; eq_sym   := addr_eq_sym
+  ; eq_trans := addr_eq_trans
+  ; eq_dec   := addr_eq_dec
+  ; eq_equal := addr_eq_eq
+  ; equal_eq := eq_addr_eq
+  }.

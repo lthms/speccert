@@ -1,5 +1,6 @@
 Require Import Coq.Bool.Bool.
 
+Require Import SpecCert.Equality.
 Require Import SpecCert.Cache.Cache_def.
 Require Import SpecCert.Address.
 Require Import SpecCert.Utils.
@@ -10,7 +11,7 @@ Definition cache_hit
            (cache :Cache S)
            (pa    :PhysicalAddress)
            :Prop :=
-  addr_eq pa (tag (find_in_map cache (phys_to_index pa))).
+  eq pa (tag (find_in_map cache (phys_to_index pa))).
 
 Definition cache_hit_dec
            {S     :Type}
@@ -18,12 +19,12 @@ Definition cache_hit_dec
            (pa:PhysicalAddress)
            : {cache_hit cache pa}+{~ cache_hit cache pa}.
 refine (
-    decide_dec (phys_addr_eq_dec pa
-                                 (tag
-                                    (find_in_map cache
-                                                 (phys_to_index pa)
-                                    )
-                                 )
+    decide_dec (eq_dec pa
+                       (tag
+                          (find_in_map cache
+                                       (phys_to_index pa)
+                          )
+                       )
                )
   ); unfold cache_hit; simpl in *; trivial.
 Defined.
