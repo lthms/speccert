@@ -1,20 +1,28 @@
+Require Import SpecCert.Equality.
 Require Import SpecCert.Memory.Memory_def.
 Require Import SpecCert.Memory.Memory_func.
 Require Import SpecCert.Address.
+Require Import SpecCert.Map.
 
-Lemma update_memory_1 {S:Set}: forall m:Memory S, forall k:HardwareAddress, forall c:S,
-        find_in_memory (update_in_memory m k c) k = c.
+Lemma update_memory_1
+      {S: Set}
+      (m: Memory S)
+      (k: HardwareAddress)
+      (c: S)
+  : find_in_memory (update_in_memory m k c) k = c.
 Proof.
-  intros m k c.
   unfold find_in_memory, update_in_memory.
-  apply _HardAddrMap.add_1.
+  apply add_1.
 Qed.
 
-Lemma update_memory_2 {S:Set}: forall m:Memory S, forall k k':HardwareAddress, forall c:S,
-        ~ addr_eq k k'
-        -> find_in_memory m k' = find_in_memory (update_in_memory m k c) k'.
+Lemma update_memory_2
+      {S:    Set}
+      (m:    Memory S)
+      (k k': HardwareAddress)
+      (c:    S)
+      (neq:  ~ eq k k')
+  : find_in_memory m k' = find_in_memory (update_in_memory m k c) k'.
 Proof.
-  intros m k k' c.
   unfold find_in_memory, update_in_memory.
-  apply _HardAddrMap.add_2.
+  apply (add_2 m k k' c neq).
 Qed.

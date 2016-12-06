@@ -14,11 +14,14 @@ Parameter eq_index_eq: forall i i':Index, i = i' -> index_eq i i'.
 Parameter phys_to_index: PhysicalAddress -> Index.
 
 Instance IndexEq: Eq Index :=
-  { eq := index_eq
-  ; eq_sym := index_eq_sym
-  ; eq_refl := index_eq_refl
+  { eq       := index_eq
+  ; eq_sym   := index_eq_sym
+  ; eq_refl  := index_eq_refl
   ; eq_trans := index_eq_trans
-  ; eq_dec := index_dec }.
+  ; eq_dec   := index_dec
+  ; eq_equal := index_eq_eq
+  ; equal_eq := eq_index_eq
+  }.
 
 Record CacheEntry
        (S: Type)

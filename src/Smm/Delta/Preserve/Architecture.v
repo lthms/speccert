@@ -1,5 +1,7 @@
 Require Import Coq.Logic.Classical_Prop.
 
+Require Import SpecCert.Equality.
+Require Import SpecCert.Map.
 Require Import SpecCert.Address.
 Require Import SpecCert.Cache.
 Require Import SpecCert.Interval.
@@ -8,9 +10,39 @@ Require Import SpecCert.Smm.Delta.Invariant.
 Require Import SpecCert.Smm.Software.
 Require Import SpecCert.x86.
 
+Lemma pa1_not_in_interval_pa2_in_interval_pa1_neq_pa2
+      (pa pa': PhysicalAddress)
+      (i:      Interval)
+      (not_in: ~ address_offset pa ∈ i)
+      (is_in:  address_offset pa' ∈ i)
+  : ~ eq pa pa'.
+  simpl.
+  unfold addr_eq.
+  intros [Heq Heq'].
+  assert (address_offset pa <> address_offset pa').
+  + apply (x1_not_in_interval_x2_in_interval_x1_neq_x2 (address_offset pa) (address_offset pa') i not_in is_in).
+  + apply H in Heq.
+    exact Heq.
+Qed.
+
+Lemma neq_dram_vga_cast
+      (pa pa': PhysicalAddress)
+  : ~ eq (dram pa) (vga pa').
+Proof.
+  unfold not.
+  simpl.
+  unfold addr_eq.
+  unfold vga, dram.
+  induction pa; induction pa'.
+  simpl.
+  intros [_H H].
+  apply eq_equal in H.
+  discriminate H.
+Qed.
+
 Lemma hardware_dram_cast
       (pa pa': PhysicalAddress)
-      : addr_eq (dram pa) (dram pa') <-> addr_eq pa pa'.
+      : eq (dram pa) (dram pa') <-> eq pa pa'.
 Proof.
   split.
   + intro Heq.
@@ -19,14 +51,15 @@ Proof.
     destruct Heq as [Heq Heq'].
     split.
     * exact Heq.
-    * apply memory_map_singleton.
+    * simpl.
+      apply mm_singleton.
   + intro Heq.
     induction pa; induction pa'; unfold dram in *; unfold addr_eq in *;
       unfold address_offset in *; unfold address_scope in *.
     destruct Heq as [Heq Heq'].
     split.
     * exact Heq.
-    * reflexivity.
+    * apply eq_refl.
 Qed.
 
 Lemma update_memory_content_with_cache_content_preserves_smram_code_inv:
@@ -43,7 +76,7 @@ Proof.
   remember (find_in_cache_location (cache a) pa) as c'.
   remember (phys_to_hard a pa') as ha.
   intros [Hsmramc [Hsmram [Hsmrr [Hclean [Hip Hsmbase]]]]] Heqa'.
-  destruct (is_inside_smram_dec pa').
+  destruct (is_inside_smram_dec pa') as [Hinside|Houtside].
   + rewrite (cache_location_cache_location (cache a) pa pa') in Heqc'; [
     | apply hardware_ensures_cache_is_well_formed
     | trivial
@@ -65,9 +98,9 @@ Proof.
     intros addr Haddr.
     induction c'; [| inversion Heqc' ].
     rewrite Heqa'.
-    destruct (hardware_addr_eq_dec ha (dram addr)).
-    * apply addr_eq_eq in a0.
-      rewrite a0.
+    destruct (eq_dec ha (dram addr)) as [Heq|_H].
+    * apply eq_equal in Heq.
+      rewrite Heq.
       rewrite update_ha_in_memory_is_ha.
       trivial.
     * rewrite <- (update_ha_in_memory_changes_only_ha a ha (dram addr) smm); [
@@ -77,16 +110,15 @@ Proof.
   + unfold smram_code_inv.
     intros addr Haddr.
     unfold phys_to_hard, translate_physical_address in Heqha.
-    destruct (is_inside_smram_dec pa'); [ intuition |].
+    destruct (is_inside_smram_dec pa') as [_H|_H']; [ intuition |].
     rewrite Heqha in *.
     rewrite Heqa'.
-    assert (~ addr_eq (dram pa') (dram addr)).
+    assert (~ eq (dram pa') (dram addr)) as Hneqdram.
     * unfold not; intro Hfalse.
-      assert (~ addr_eq pa' addr).
+      assert (~ eq pa' addr).
       unfold is_inside_smram in *.
-      apply or_not_and.
-      left.
-      apply x1_not_in_interval_x2_in_interval_x1_neq_x2 with (i:=smram_space); trivial.
+      apply hardware_dram_cast in Hfalse.
+      apply (pa1_not_in_interval_pa2_in_interval_pa1_neq_pa2 pa' addr smram_space Houtside Haddr).
       apply hardware_dram_cast in Hfalse.
       apply H in Hfalse.
       exact Hfalse.
@@ -250,7 +282,7 @@ Proof.
   rewrite Heqa'.
   simpl.
   unfold phys_to_hard, translate_physical_address.
-  destruct is_inside_smram_dec.
+  destruct is_inside_smram_dec as [Hinside|Houtside].
   + destruct can_access_smram_dec.
     * assert (smm_context a = smm).
       unfold can_access_smram in c.
@@ -267,37 +299,32 @@ Proof.
       rewrite Hsmramc in Hfalse.
       discriminate.
       rewrite H.
-      destruct (phys_addr_eq_dec pa pa').
-      apply addr_eq_eq in a0.
-      rewrite a0.
-      apply _HardAddrMap.add_1.
-      rewrite <- _HardAddrMap.add_2.
+      destruct (eq_dec pa pa').
+      apply eq_equal in e.
+      rewrite e.
+      apply add_1.
+      rewrite <- add_2.
       apply Hsmram.
       exact Hinside'.
       intro Hfalse.
       apply hardware_dram_cast in Hfalse.
       apply n in Hfalse.
       exact Hfalse.
-    * rewrite <- _HardAddrMap.add_2.
+    * rewrite <- add_2.
       apply Hsmram.
       exact Hinside'.
-      unfold addr_eq.
-      unfold is_same_memory.
-      intuition.
-      unfold dram in H1; unfold vga in H1; unfold address_scope in H1; induction pa; induction pa'.
-      discriminate H1.
-  + assert (~ addr_eq pa pa').
-    apply or_not_and.
-    left.
-    apply x1_not_in_interval_x2_in_interval_x1_neq_x2 with (i:=smram_space).
-    exact n.
-    exact Hinside'.
-    rewrite <- _HardAddrMap.add_2.
-    apply Hsmram.
-    apply Hinside'.
+      intro H.
+      apply eq_sym in H.
+      assert (~ eq (dram pa') (vga pa)).
+      apply (neq_dram_vga_cast pa' pa).
+      apply H0 in H.
+      exact H.
+  + assert (~ eq pa pa') as Hneqpapa'.
+    apply (pa1_not_in_interval_pa2_in_interval_pa1_neq_pa2 pa pa' smram_space Houtside Hinside').
+    rewrite <- (add_2 (memory a) (dram pa) (dram pa')); [ apply Hsmram; apply Hinside'|].
     intro Hfalse.
     apply hardware_dram_cast in Hfalse.
-    apply H in Hfalse.
+    apply Hneqpapa' in Hfalse.
     exact Hfalse.
 Qed.
 
@@ -408,7 +435,7 @@ Proof.
                                       | split; [ exact Hip
                                                | exact Hsmbase ]]]]].
   unfold load_in_cache_from_memory in Heqa'.
-  destruct (cache_location_is_dirty_dec (cache a) pa).
+  destruct (cache_location_is_dirty_dec (cache a) pa) as [Hdirty|Hndirty].
   + remember (update_memory_content a
                                     (phys_to_hard a (cache_location_address (cache a) pa))
                                     (find_in_cache_location (cache a) pa)) as ax.
@@ -443,7 +470,7 @@ Proof.
                                       | split; [ exact Hip
                                                | exact Hsmbase ]]]]].
   unfold load_in_cache_from_memory in Heqa'.
-  destruct (cache_location_is_dirty_dec (cache a) pa).
+  destruct (cache_location_is_dirty_dec (cache a) pa) as [Hdirty|Hndirty].
   + remember (update_memory_content a
                                     (phys_to_hard a (cache_location_address (cache a) pa))
                                     (find_in_cache_location (cache a) pa)) as ax.
@@ -457,35 +484,34 @@ Proof.
     unfold global_update_in_cache.
     destruct (cache_hit_dec (cache ax) pa) as [Hcache_hit_pa|Hnot_cache_hit_pa].
     * unfold update_in_cache, find_in_cache.
-      destruct (phys_addr_eq_dec pa pa').
-      - apply addr_eq_eq in a0.
-        rewrite a0.
-        assert (cache_hit 
-                  (_IndexMap.add_in_map (cache ax) (phys_to_index pa')
-                                        {| dirty := true; content := c'; tag := pa' |}) pa').
+      destruct (eq_dec pa pa') as [Heqpapa'|Hneqpapa'].
+      - apply eq_equal in Heqpapa'.
+        rewrite Heqpapa'.
+        assert (cache_hit
+                  (add_in_map (cache ax) (phys_to_index pa')
+                              {| dirty := true; content := c'; tag := pa' |}) pa') as Hcache_hit_add.
         unfold cache_hit.
-        rewrite _IndexMap.add_1.
-        simpl.
-        apply addr_eq_refl.
+        rewrite add_1.
+        apply eq_refl.
         destruct (cache_hit_dec
-                  (_IndexMap.add_in_map (cache ax) (phys_to_index pa')
-                                        {| dirty := true; content := c'; tag := pa' |}) pa');
+                  (add_in_map (cache ax) (phys_to_index pa')
+                              {| dirty := true; content := c'; tag := pa' |}) pa');
           [| intuition].
-        rewrite _IndexMap.add_1.
+        rewrite add_1.
         simpl.
-        rewrite a0 in Heqc'.
+        rewrite Heqpapa' in Heqc'.
         unfold phys_to_hard, translate_physical_address in Heqc'.
-        destruct (is_inside_smram_dec pa'); [| intuition ].
+        destruct (is_inside_smram_dec pa') as [Hinside|_H]; [| intuition ].
         assert (is_in_smm (proc a)); [
-            rewrite <- a0 in i;
-            apply (Hin_smm i) |].
-        destruct (can_access_smram_dec (memory_controller a) (in_smm (proc a))); [
-          |  unfold can_access_smram in n;
+            rewrite <- Heqpapa' in Hinside;
+            apply (Hin_smm Hinside) |].
+        destruct (can_access_smram_dec (memory_controller a) (in_smm (proc a))) as [Hcan|Hcannot]; [
+          |  unfold can_access_smram in Hcannot;
             intuition ].
-        rewrite Hsmram in Heqc'; [| exact i ].
+        rewrite Hsmram in Heqc'; [| exact Hinside ].
         rewrite Heqc'.
         reflexivity.
-      - destruct (index_dec (phys_to_index pa) (phys_to_index pa')).
+      - destruct (eq_dec (phys_to_index pa) (phys_to_index pa')) as [Heqi|Hneqi].
         assert (cache_hit (cache a') pa); [
             rewrite Heqa';
             simpl;
@@ -493,44 +519,44 @@ Proof.
         assert (~ cache_hit (cache a') pa'); [
             apply (cache_hit_same_index_cache_miss (cache a') pa); trivial
           | intuition ].
-        assert (cache_hit 
-                  (_IndexMap.add_in_map (cache ax) (phys_to_index pa)
-                                        {| dirty := true; content := c'; tag := pa |}) pa').
+        assert (cache_hit
+                  (add_in_map (cache ax) (phys_to_index pa)
+                              {| dirty := true; content := c'; tag := pa |}) pa').
         unfold cache_hit.
-        rewrite <- _IndexMap.add_2; [| exact n0 ].
+        rewrite <- add_2; [| exact Hneqi ].
         rewrite Heqa' in Hcache_hit.
         simpl in Hcache_hit.
         unfold cache_hit, global_update_in_cache in Hcache_hit.
-        destruct (cache_hit_dec (cache ax) pa).
+        destruct (cache_hit_dec (cache ax) pa) as [Hcache_hit_x_pa|Hncache_hit_x_pa].
         unfold update_in_cache in Hcache_hit.
-        rewrite <- _IndexMap.add_2 in Hcache_hit; [| exact n0 ].
+        rewrite <- add_2 in Hcache_hit; [| exact Hneqi ].
         exact Hcache_hit.
-        apply n1 in Hcache_hit_pa.
+        apply Hncache_hit_x_pa in Hcache_hit_pa.
         destruct Hcache_hit_pa.
         destruct (cache_hit_dec
-                    (_IndexMap.add_in_map (cache ax) (phys_to_index pa)
-                                          {| dirty := true; content := c'; tag := pa |}) pa').
-        rewrite <- _IndexMap.add_2.
+                    (add_in_map (cache ax) (phys_to_index pa)
+                                {| dirty := true; content := c'; tag := pa |}) pa') as [Hcache_add|Hncache_add].
+        rewrite <- add_2.
         unfold cache_clean_inv in Hclean.
         destruct H as [Hsmramcx [Hsmramx [Hsmrrx [Hcleanx Hipx]]]].
-        assert (cache_hit (cache ax) pa'); [
+        assert (cache_hit (cache ax) pa') as Hcache_hit_x_pa'; [
             apply (cache_hit_is_preserve_by_non_conflicted_update (cache ax)
                                                                   (cache a')
                                                                   pa
                                                                   pa'
                                                                   c'); [
-            exact n0 |
+            exact Hneqi |
             rewrite Heqa'; simpl; reflexivity |
             exact Hcache_hit ] |].
-        assert (find_cache_content ax pa' = Some (content (_IndexMap.find_in_map (cache ax) (phys_to_index pa')))).
+        assert (find_cache_content ax pa' = Some (content (find_in_map (cache ax) (phys_to_index pa')))) as Hfind.
         unfold find_cache_content, find_in_cache.
-        destruct (cache_hit_dec (cache ax) pa'); [ reflexivity | intuition ].
-        rewrite <- H1.
-        apply (Hcleanx pa' Hinside' H).
-        exact n0.
-        apply n1 in H0.
+        destruct (cache_hit_dec (cache ax) pa') as [_H|_H]; [ reflexivity | intuition ].
+        rewrite <- Hfind.
+        apply (Hcleanx pa' Hinside' Hcache_hit_x_pa').
+        exact Hneqi.
+        apply Hncache_add in H0.
         destruct H0.
-    * destruct (index_dec (phys_to_index pa) (phys_to_index pa')).
+    * destruct (eq_dec (phys_to_index pa) (phys_to_index pa')) as [Heqi|Hneqi].
       - assert (cache a'=global_update_in_cache (cache ax) pa c') as Heqcache'; [
           rewrite Heqa';
           simpl;
@@ -538,45 +564,46 @@ Proof.
         assert (cache_hit (global_update_in_cache (cache ax) pa c') pa); [
             apply (global_update_in_cache_cache_hit (cache ax) pa) |].
         rewrite <- Heqcache' in H0.
-        destruct (phys_addr_eq_dec pa pa').
+        destruct (eq_dec pa pa') as [Heq|Hneq].
         (* case addr_eq *)
-        apply addr_eq_eq in a0.
-        rewrite a0 in Heqc'.
+        apply eq_equal in Heq.
+        rewrite Heq in Heqc'.
         unfold smram_code_inv in Hsmram.
         assert (is_inside_smram pa'); try exact Hinside'.
-        rewrite <- a0 in Hinside'.
+        rewrite <- Heq in Hinside'.
         apply Hin_smm in Hinside'.
         unfold is_in_smm in Hinside'.
         unfold phys_to_hard, translate_physical_address in Heqc'.
-        rewrite <- a0 in Heqc'.
+        rewrite <- Heq in Heqc'.
         destruct (is_inside_smram_dec pa).
         rewrite Hinside' in Heqc'.
         destruct (can_access_smram_dec (memory_controller a) true).
         rewrite Hsmram in Heqc'; try trivial.
         rewrite Heqc'.
         unfold find_in_cache, load_in_cache.
-        rewrite <- a0.
+        rewrite <- Heq.
         destruct cache_hit_dec.
-        rewrite _IndexMap.add_1.
+        rewrite add_1.
         simpl.
         reflexivity.
         unfold cache_hit in n.
-        rewrite _IndexMap.add_1 in n.
+        rewrite add_1 in n.
         simpl in n.
         unfold not in n.
-        assert (addr_eq pa pa). apply addr_eq_refl.
-        apply n in H2. destruct H2.
+        assert (eq pa pa) by (apply eq_refl).
+        apply n in H2.
+        destruct H2.
         unfold can_access_smram in n.
         apply not_or_and in n.
         destruct n as [G1 G2].
         intuition.
-        rewrite <- a0 in H1.
+        rewrite <- Heq in H1.
         intuition.
         (* case ~ addr_eq *)
         apply (global_update_not_cache_hit (cache ax) (cache a') pa pa' c') in Heqcache'; try intuition.
       - unfold find_in_cache, load_in_cache.
         destruct cache_hit_dec.
-        rewrite <- _IndexMap.add_2.
+        rewrite <- add_2.
         destruct H as [Hsmramcx [Hsmramx [Hsmrrx [Hcleanx Hipx]]]].
         assert (cache_hit (cache ax) pa') as Hcache_hit_before; [
             apply (cache_hit_is_preserve_by_non_conflicted_update (cache ax)
@@ -584,30 +611,30 @@ Proof.
                                                                   pa
                                                                   pa'
                                                                   c'); [
-              exact n
+              exact Hneqi
             | rewrite Heqa'; reflexivity
             | exact Hcache_hit ] |].
         unfold cache_clean_inv in Hcleanx.
         assert ((if cache_hit_dec (cache ax) pa'
-                 then Some (content (_IndexMap.find_in_map (cache ax) (phys_to_index pa')))
+                 then Some (content (find_in_map (cache ax) (phys_to_index pa')))
                  else None) = Some smm).
         apply (Hcleanx _ Hinside' Hcache_hit_before).
         destruct cache_hit_dec; [ | intuition ].
         rewrite H.
         reflexivity.
-        exact n.
+        exact Hneqi.
         destruct H as [Hsmramcx [Hsmramx [Hsmrrx Hcleanx]]].
         assert (cache_hit (cache ax) pa') as Hcache_hit_before; [
             apply (cache_hit_is_preserve_by_non_conflicted_update (cache ax) (cache a') pa pa' c'); [
-              exact n
+              exact Hneqi
             | rewrite Heqa'; reflexivity
             | exact Hcache_hit ] |].
         exfalso.
-        apply n0.
+        apply n.
         unfold cache_hit.
-        rewrite <- _IndexMap.add_2.
+        rewrite <- add_2.
         exact Hcache_hit_before.
-        exact n.
+        exact Hneqi.
   + unfold cache_clean_inv.
     intros pa' Hinside' Hcache_hit'.
     remember (find_memory_content a (phys_to_hard a pa)) as c.
@@ -630,19 +657,18 @@ Proof.
       rewrite Heqa'; rewrite Heqcache'.
       unfold find_cache_content, find_in_cache, update_cache_content, update_in_cache.
       simpl.
-      destruct (phys_addr_eq_dec pa pa').
-      apply addr_eq_eq in a0.
-      rewrite a0.
-      assert (cache_hit 
-                (_IndexMap.add_in_map (cache a) (phys_to_index pa')
+      destruct (eq_dec pa pa') as [eq|neq].
+      apply eq_equal in eq.
+      rewrite eq.
+      assert (cache_hit
+                (add_in_map (cache a) (phys_to_index pa')
                                       {| dirty := true; content := smm; tag := pa' |}) pa').
       unfold cache_hit.
-      rewrite _IndexMap.add_1.
-      simpl.
-      apply addr_eq_refl.
+      rewrite add_1.
+      apply eq_refl.
       destruct cache_hit_dec; [| intuition ].
-      rewrite _IndexMap.add_1; reflexivity.
-      remember (_IndexMap.add_in_map (cache a)
+      rewrite add_1; reflexivity.
+      remember (add_in_map (cache a)
                                      (phys_to_index pa)
                                      {| dirty := true; content := smm; tag := pa |}) as cachex.
       assert (cachex = cache'); [ rewrite Heqcache';
@@ -652,65 +678,62 @@ Proof.
       assert (cache' = cache a').
       rewrite Heqa'; rewrite Heqcache'; reflexivity.
       rewrite H2.
-      destruct (cache_hit_dec (cache a') pa'); [| try intuition ].
-      destruct (index_dec (phys_to_index pa) (phys_to_index pa')).
+      destruct (cache_hit_dec (cache a') pa') as [Hcache_hit_pa'|_H]; [| try intuition ].
+      destruct (eq_dec (phys_to_index pa) (phys_to_index pa')) as [Heqi|Hneqi].
       assert (~ cache_hit (cache a') pa'); [| try intuition ].
       rewrite Heqa'.
       rewrite Heqcache'.
       simpl.
       unfold cache_hit, update_in_cache.
-      apply index_eq_eq in i0.
-      rewrite <- i0.
-      rewrite _IndexMap.add_1.
-      simpl.
+      apply eq_equal in Heqi.
+      rewrite <- Heqi.
+      rewrite add_1.
       intro Hnot.
-      apply addr_eq_sym in Hnot.
-      apply n0 in Hnot.
+      apply eq_sym in Hnot.
+      apply neq in Hnot.
       exact Hnot.
       rewrite Heqa'.
       rewrite Heqcache'.
       simpl.
       unfold cache_hit, update_in_cache.
-      rewrite <- _IndexMap.add_2 with (k:=phys_to_index pa)
-                                     (c:={| dirty := true; content := smm; tag := pa |}); [
-        | exact n1].
+      rewrite <- add_2 with (k:=phys_to_index pa)
+                            (v:={| dirty := true; content := smm; tag := pa |}); [
+        | exact Hneqi].
       unfold cache_clean_inv in Hclean.
       assert (cache_hit (cache a) pa').
       (**********************)
-      rewrite <- H2 in c2.
-      rewrite Heqcache' in c2.
-      unfold update_in_cache in c2.
-      unfold cache_hit in c2.
-      rewrite <- _IndexMap.add_2 in c2; [| exact n1 ].
-      exact c2.
+      rewrite <- H2 in Hcache_hit_pa'.
+      rewrite Heqcache' in Hcache_hit_pa'.
+      unfold update_in_cache in Hcache_hit_pa'.
+      unfold cache_hit in Hcache_hit_pa'.
+      rewrite <- add_2 in Hcache_hit_pa'; [| exact Hneqi ].
+      exact Hcache_hit_pa'.
       (**********************)
-      assert (find_cache_content a pa' = Some (content (_IndexMap.find_in_map (cache a) (phys_to_index pa')))).
+      assert (find_cache_content a pa' = Some (content (find_in_map (cache a) (phys_to_index pa')))).
       unfold find_cache_content.
       unfold find_in_cache.
-      destruct (cache_hit_dec (cache a) pa'); [ | try intuition ].
+      destruct (cache_hit_dec (cache a) pa') as [_H|_H]; [ | try intuition ].
       reflexivity.
       rewrite <- H4.
       rewrite Hclean; [
           reflexivity
         | exact Hinside'
         | exact H3 ].
-      
       rewrite Heqa'; rewrite Heqcache'.
       unfold find_cache_content, find_in_cache, load_in_cache, update_in_cache.
-      simpl.
-      destruct (phys_addr_eq_dec pa pa').
-      apply addr_eq_eq in a0.
-      rewrite a0.
-      assert (cache_hit 
-                (_IndexMap.add_in_map (cache a) (phys_to_index pa')
+      destruct (eq_dec pa pa') as [Heq|Hneq].
+      apply eq_equal in Heq.
+      rewrite Heq.
+      assert (cache_hit
+                (add_in_map (cache a) (phys_to_index pa')
                                       {| dirty := false; content := smm; tag := pa' |}) pa').
       unfold cache_hit.
-      rewrite _IndexMap.add_1.
-      simpl.
-      apply addr_eq_refl.
+      rewrite add_1.
+      apply eq_refl.
       destruct cache_hit_dec; [| intuition ].
-      rewrite _IndexMap.add_1; reflexivity.
-      remember (_IndexMap.add_in_map (cache a)
+      simpl.
+      rewrite add_1; reflexivity.
+      remember (add_in_map (cache a)
                                      (phys_to_index pa)
                                      {| dirty := false; content := smm; tag := pa |}) as cachex.
       assert (cachex = cache'); [ rewrite Heqcache';
@@ -720,84 +743,88 @@ Proof.
       assert (cache' = cache a').
       rewrite Heqa'; rewrite Heqcache'; reflexivity.
       rewrite H2.
-      destruct (cache_hit_dec (cache a') pa'); [| try intuition ].
-      destruct (index_dec (phys_to_index pa) (phys_to_index pa')).
-      assert (~ cache_hit (cache a') pa'); [| try intuition ].
+      destruct (cache_hit_dec (cache a') pa') as [Hcache_hit_pa'|_H]; [| try intuition ].
+      destruct (eq_dec (phys_to_index pa) (phys_to_index pa')) as [Heqi|Hneqi].
+      assert (~ cache_hit (cache a') pa').
       rewrite Heqa'.
       rewrite Heqcache'.
       simpl.
       unfold cache_hit, load_in_cache.
-      apply index_eq_eq in i0.
-      rewrite <- i0.
-      rewrite _IndexMap.add_1.
-      simpl.
+      apply eq_equal in Heqi.
+      rewrite <- Heqi.
+      rewrite add_1.
       intro Hnot.
-      apply addr_eq_sym in Hnot.
-      apply n1 in Hnot.
+      apply eq_sym in Hnot.
+      apply Hneq in Hnot.
       exact Hnot.
-      rewrite Heqa'.
-      rewrite Heqcache'.
       simpl.
-      unfold cache_hit, load_in_cache.
-      rewrite <- _IndexMap.add_2 with (k:=phys_to_index pa)
-                                     (c:={| dirty := false; content := smm; tag := pa |}); [
-        | exact n2].
+      destruct (cache_hit_dec (cache a') pa') as [_H|_H]; intuition.
+      simpl.
+      destruct (cache_hit_dec (cache a') pa') as [_H|_H]; intuition.
+      rewrite  Heqa'.
+      rewrite Heqcachex.
+      simpl.
+      rewrite <- add_2 with (k:=phys_to_index pa)
+                            (v:={| dirty := false; content := smm; tag := pa |}); [
+        | exact Hneqi ].
       unfold cache_clean_inv in Hclean.
-      assert (cache_hit (cache a) pa').
+      assert (cache_hit (cache a) pa') as Hcache_hit_in_a_pa'.
       (**********************)
-      rewrite <- H2 in c1.
-      rewrite Heqcache' in c1.
-      unfold load_in_cache in c1.
-      unfold cache_hit in c1.
-      rewrite <- _IndexMap.add_2 in c1; [| exact n2 ].
-      exact c1.
+      rewrite <- H2 in Hcache_hit_pa'.
+      rewrite Heqcache' in Hcache_hit_pa'.
+      unfold load_in_cache in Hcache_hit_pa'.
+      unfold cache_hit in Hcache_hit_pa'.
+      rewrite <- add_2 in Hcache_hit_pa'; [| exact Hneqi ].
+      exact Hcache_hit_pa'.
       (**********************)
-      assert (find_cache_content a pa' = Some (content (_IndexMap.find_in_map (cache a) (phys_to_index pa')))).
+      assert (find_cache_content a pa' = Some (content (find_in_map (cache a) (phys_to_index pa')))) as Hfind.
       unfold find_cache_content.
       unfold find_in_cache.
       destruct (cache_hit_dec (cache a) pa'); [ | try intuition ].
       reflexivity.
-      rewrite <- H4.
+      rewrite <- Hfind.
       rewrite Hclean; [
           reflexivity
         | exact Hinside'
-        | exact H3 ].
-    * assert (~ addr_eq pa pa'); [
+        | exact Hcache_hit_in_a_pa' ].
+    * assert (~ eq pa pa'); [
         apply or_not_and;
         left;
-        apply (x1_not_in_interval_x2_in_interval_x1_neq_x2 _ _ _ n0 Hinside') |].
-      destruct (index_dec (phys_to_index pa) (phys_to_index pa')).
-      - assert (~ cache_hit (cache a') pa'); [| intuition ].
+        apply (x1_not_in_interval_x2_in_interval_x1_neq_x2 _ _ _ n Hinside') |].
+      destruct (eq_dec (phys_to_index pa) (phys_to_index pa')) as [Heqi|Hneqi].
+      - assert (~ cache_hit (cache a') pa') as Hncache_hit_pa'; [| intuition ].
         rewrite Heqa'.
         unfold update_cache_content, cache_hit, global_update_in_cache; simpl.
         destruct (cache_hit_dec (cache a) pa).
         unfold update_in_cache.
-        apply index_eq_eq in i.
-        rewrite <- i.
-        rewrite _IndexMap.add_1.
+        apply eq_equal in Heqi.
+        rewrite <- Heqi.
+        rewrite add_1.
         simpl.
         intro Hnot.
         apply addr_eq_sym in Hnot.
-        apply H in Hnot. exact Hnot.
+        apply H in Hnot.
+        exact Hnot.
         unfold load_in_cache.
-        apply index_eq_eq in i.
-        rewrite <- i.
-        rewrite _IndexMap.add_1.
+        apply eq_equal in Heqi.
+        rewrite <- Heqi.
+        rewrite add_1.
         simpl.
         intro Hnot.
         apply addr_eq_sym in Hnot.
-        apply H in Hnot. exact Hnot.
+        apply H in Hnot.
+        exact Hnot.
       - assert (cache_hit (cache a) pa').
         rewrite Heqa' in Hcache_hit'.
         unfold cache_hit, update_cache_content in Hcache_hit'.
         simpl in Hcache_hit'.
         unfold global_update_in_cache in Hcache_hit'.
-        destruct (cache_hit_dec (cache a) pa); [
+        destruct (cache_hit_dec (cache a) pa) as [_H|_H]; [
             unfold update_in_cache in Hcache_hit';
-            rewrite <- _IndexMap.add_2 in Hcache_hit'; [| exact n1 ];
+            rewrite <- add_2 in Hcache_hit'; [| exact Hneqi ];
             exact Hcache_hit' |
             unfold load_in_cache in Hcache_hit' ;
-              rewrite <- _IndexMap.add_2 in Hcache_hit'; [| exact n1 ] ;
+              rewrite <- add_2 in Hcache_hit'; [| exact Hneqi ] ;
               exact Hcache_hit' ].
         assert (find_cache_content a' pa' = find_cache_content a pa').
         unfold find_cache_content.
@@ -806,7 +833,7 @@ Proof.
         rewrite Heqa'.
         unfold update_cache_content, global_update_in_cache, load_in_cache, update_in_cache; simpl.
         destruct cache_hit_dec;
-          (rewrite <- _IndexMap.add_2; [ reflexivity | exact n1 ]).
+          (rewrite <- add_2; [ reflexivity | exact Hneqi ]).
         rewrite H1.
         rewrite Hclean; [
             reflexivity
@@ -984,50 +1011,50 @@ Proof.
     unfold find_in_cache.
     destruct cache_hit_dec; [| intuition ].
     rewrite Heqa'; simpl.
-    destruct (phys_addr_eq_dec pa pa').
-    * apply addr_eq_eq in a0.
-      rewrite <- a0.
-      rewrite _IndexMap.add_1.
+    destruct (eq_dec pa pa') as [Heq|Hneq].
+    * apply eq_equal in Heq.
+      rewrite <- Heq.
+      rewrite add_1.
       simpl.
-      rewrite <- a0 in Hinside'.
+      rewrite <- Heq in Hinside'.
       apply Hin_smm in Hinside'.
       unfold smm_context.
       destruct is_in_smm_dec.
       reflexivity.
       apply n in Hinside'.
       destruct Hinside'.
-    * destruct (index_dec (phys_to_index pa) (phys_to_index pa')).
+    * destruct (eq_dec (phys_to_index pa) (phys_to_index pa')) as [Heqi|Hneqi].
       - assert (~ cache_hit (cache a') pa'); [| intuition ].
-        assert (cache_hit (cache a') pa).
+        assert (cache_hit (cache a') pa) as Hcache_hit_pa.
         unfold cache_hit.
         rewrite Heqa'.
         simpl.
-        rewrite _IndexMap.add_1.
+        rewrite add_1.
         simpl.
         apply addr_eq_refl.
-        apply (cache_hit_same_index_cache_miss (cache a') pa pa' H n i).
-      - rewrite <- _IndexMap.add_2; [| exact n0 ].
+        apply (cache_hit_same_index_cache_miss (cache a') pa pa' Hcache_hit_pa Hneq Heqi).
+      - rewrite <- add_2; [| exact Hneqi ].
         assert (cache_hit (cache a) pa').
         apply (cache_hit_is_preserve_by_non_conflicted_update (cache a)
                                                               (cache a')
                                                               pa pa'
                                                               (smm_context a)
-                                                              n0).
+                                                              Hneqi).
         rewrite Heqa'.
         simpl.
         unfold global_update_in_cache.
-        destruct cache_hit_dec; [
+        destruct cache_hit_dec as [_H|Hncache_hit] ; [
           unfold update_in_cache;
           reflexivity
-        | apply n1 in c;
+        | apply Hncache_hit in c;
           destruct c;
           exact c0 ].
         exact Hcache_hit'.
-        assert (find_cache_content a pa' = Some (content (_IndexMap.find_in_map (cache a) (phys_to_index pa')))).
+        assert (find_cache_content a pa' = Some (content (find_in_map (cache a) (phys_to_index pa')))) as Hfind.
         unfold find_cache_content, find_in_cache.
-        destruct cache_hit_dec; [ reflexivity |].
-        apply n1 in H; destruct H.
-        rewrite <- H0.
+        destruct cache_hit_dec as [_H|Hncache_hit]; [ reflexivity |].
+        apply Hncache_hit in H; destruct H.
+        rewrite <- Hfind.
         rewrite Hclean; [
             reflexivity |
             exact Hinside' |
@@ -1037,35 +1064,35 @@ Proof.
     unfold find_in_cache.
     destruct cache_hit_dec; [| intuition ].
     rewrite Heqa'; simpl.
-    destruct (phys_addr_eq_dec pa pa').
-    * apply addr_eq_eq in a0.
-      rewrite <- a0.
-      rewrite _IndexMap.add_1.
+    destruct (eq_dec pa pa') as [Heqpa|Hneqpa].
+    * apply eq_equal in Heqpa.
+      rewrite <- Heqpa.
+      rewrite add_1.
       simpl.
-      rewrite <- a0 in Hinside'.
+      rewrite <- Heqpa in Hinside'.
       apply Hin_smm in Hinside'.
       unfold smm_context.
       destruct is_in_smm_dec.
       reflexivity.
       apply n0 in Hinside'.
       destruct Hinside'.
-    * destruct (index_dec (phys_to_index pa) (phys_to_index pa')).
+    * destruct (eq_dec (phys_to_index pa) (phys_to_index pa')) as [Heqi|Hneqi].
       - assert (~ cache_hit (cache a') pa'); [| intuition ].
         assert (cache_hit (cache a') pa).
         unfold cache_hit.
         rewrite Heqa'.
         simpl.
-        rewrite _IndexMap.add_1.
+        rewrite add_1.
         simpl.
         apply addr_eq_refl.
-        apply (cache_hit_same_index_cache_miss (cache a') pa pa' H n0 i).
-      - rewrite <- _IndexMap.add_2; [| exact n1 ].
+        apply (cache_hit_same_index_cache_miss (cache a') pa pa' H Hneqpa Heqi).
+      - rewrite <- add_2; [| exact Hneqi ].
         assert (cache_hit (cache a) pa').
         apply (cache_hit_is_preserve_by_non_conflicted_update (cache a)
                                                               (cache a')
                                                               pa pa'
                                                               (smm_context a)
-                                                              n1).
+                                                              Hneqi).
         rewrite Heqa'.
         simpl.
         unfold global_update_in_cache.
@@ -1073,11 +1100,11 @@ Proof.
         unfold load_in_cache.
         reflexivity.
         exact c.
-        assert (find_cache_content a pa' = Some (content (_IndexMap.find_in_map (cache a) (phys_to_index pa')))).
+        assert (find_cache_content a pa' = Some (content (find_in_map (cache a) (phys_to_index pa')))).
         unfold find_cache_content, find_in_cache.
         destruct cache_hit_dec.
         reflexivity.
-        apply n2 in H; destruct H.
+        apply n0 in H; destruct H.
         rewrite <- H0.
         rewrite Hclean; [
             reflexivity |

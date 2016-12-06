@@ -1,3 +1,5 @@
+Require Import SpecCert.Map.
+Require Import SpecCert.Equality.
 Require Import SpecCert.x86.Architecture.ProcessorUnit.
 Require Import SpecCert.x86.Architecture.MemoryController.
 Require Import SpecCert.x86.Architecture.Architecture_rec.
@@ -78,7 +80,7 @@ Lemma update_ha_in_memory_changes_only_ha {S :Set}:
   forall a      :Architecture S,
   forall ha ha' :HardwareAddress,
   forall c      :S,
-    ~ addr_eq ha ha'
+    ~ eq ha ha'
     -> find_memory_content a ha' = find_memory_content (update_memory_content a ha c) ha'.
 Proof.
   intros a ha ha' c Hdiff.
@@ -183,9 +185,9 @@ Proof.
   unfold load_in_cache.
   simpl.
   repeat destruct cache_hit_dec.
-  rewrite <- _IndexMap.add_2; trivial.
-  assert (~ cache_hit 
-            (_IndexMap.add_in_map (cache a) (phys_to_index pa)
+  rewrite <- add_2; trivial.
+  assert (~ cache_hit
+            (add_in_map (cache a) (phys_to_index pa)
                                   {| dirty := true; content := c; tag := pa |}) pa'
          ); [
     | intuition
@@ -193,8 +195,8 @@ Proof.
   clear c0.
   unfold not; intro Hhit'.
   unfold cache_hit in Hhit'.
-  rewrite <- _IndexMap.add_2 with (k:=phys_to_index pa)
-                                   (c:=
+  rewrite <- add_2 with (k:=phys_to_index pa)
+                                   (v:=
                                       {|
                                         dirty := true;
                                         content := c;
@@ -205,9 +207,9 @@ Proof.
   unfold cache_hit in n.
   intuition.
   trivial.
-  rewrite <- _IndexMap.add_2; trivial.
-  assert (~ cache_hit 
-            (_IndexMap.add_in_map (cache a) (phys_to_index pa)
+  rewrite <- add_2; trivial.
+  assert (~ cache_hit
+            (add_in_map (cache a) (phys_to_index pa)
                                   {| dirty := false; content := c; tag := pa |}) pa'
          ); [
     | intuition
@@ -215,8 +217,8 @@ Proof.
   clear c0.
   unfold not; intro Hhit'.
   unfold cache_hit in Hhit'.
-  rewrite <- _IndexMap.add_2 with (k:=phys_to_index pa)
-                                   (c:=
+  rewrite <- add_2 with (k:=phys_to_index pa)
+                                   (v:=
                                       {|
                                         dirty := false;
                                         content := c;
@@ -227,32 +229,32 @@ Proof.
   unfold cache_hit in n.
   intuition.
   trivial.
-  assert (cache_hit 
-            (_IndexMap.add_in_map (cache a) (phys_to_index pa)
+  assert (cache_hit
+            (add_in_map (cache a) (phys_to_index pa)
                                   {| dirty := true; content := c; tag := pa |}) pa'
          ); [
     | intuition
     ].
   unfold cache_hit.
-  rewrite <- _IndexMap.add_2.
+  rewrite <- add_2.
   unfold cache_hit in c1.
-  apply addr_eq_eq in c1.
+  apply eq_equal in c1.
   rewrite <- c1.
-  apply addr_eq_refl.
+  apply eq_refl.
   trivial.
   reflexivity.
-  assert (cache_hit 
-            (_IndexMap.add_in_map (cache a) (phys_to_index pa)
+  assert (cache_hit
+            (add_in_map (cache a) (phys_to_index pa)
                                   {| dirty := false; content := c; tag := pa |}) pa'
          ); [
     | intuition
     ].
   unfold cache_hit.
-  rewrite <- _IndexMap.add_2.
+  rewrite <- add_2.
   unfold cache_hit in c0.
-  apply addr_eq_eq in c0.
+  apply eq_equal in c0.
   rewrite <- c0.
-  apply addr_eq_refl.
+  apply eq_refl.
   trivial.
   reflexivity.
 Qed.
@@ -272,12 +274,12 @@ Proof.
   repeat destruct cache_hit_dec.
   + unfold update_in_cache.
     rewrite Heq.
-    rewrite _IndexMap.add_1.
+    rewrite add_1.
     simpl.
     reflexivity.
   + unfold load_in_cache.
     rewrite Heq.
-    rewrite _IndexMap.add_1.
+    rewrite add_1.
     simpl.
     reflexivity.
 Qed.

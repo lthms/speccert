@@ -3,6 +3,7 @@ Require Import SpecCert.Cache.Cache_prop.
 Require Import SpecCert.Cache.Cache_func.
 Require Import SpecCert.Address.
 Require Import SpecCert.Map.
+Require Import SpecCert.Equality.
 
 Lemma update_in_cache_cache_hit
       {S:      Type}
@@ -15,7 +16,7 @@ Proof.
   unfold cache_hit.
   unfold update_in_cache.
   rewrite add_1.
-  apply addr_eq_refl.
+  apply eq_refl.
 Qed.
 
 Lemma load_in_cache_cache_hit
@@ -29,7 +30,7 @@ Proof.
   unfold cache_hit.
   unfold load_in_cache.
   rewrite add_1.
-  apply addr_eq_refl.
+  apply eq_refl.
 Qed.
 
 Lemma global_update_in_cache_cache_hit
@@ -81,22 +82,22 @@ Lemma same_index_cache_hit_same_address
       {S:      Set}
       (pa pa': PhysicalAddress)
       (cache:  Cache S)
-  : index_eq (phys_to_index pa) (phys_to_index pa')
+  : eq (phys_to_index pa) (phys_to_index pa')
     -> cache_hit cache pa
     -> cache_hit cache pa'
-    -> addr_eq pa pa'.
+    -> eq pa pa'.
 Proof.
   intros Heq Hhit Hhit'.
-  apply eq_addr_eq.
-  apply index_eq_eq in Heq.
+  apply equal_eq.
+  apply eq_equal in Heq.
   unfold cache_hit in *.
   rewrite Heq in Hhit.
   case_eq (find_in_map cache (phys_to_index pa')).
   intros.
   rewrite H in Hhit.
   rewrite H in Hhit'.
-  apply addr_eq_eq in Hhit.
-  apply addr_eq_eq in Hhit'.
+  apply eq_equal in Hhit.
+  apply eq_equal in Hhit'.
   rewrite Hhit.
   rewrite Hhit'.
   reflexivity.
@@ -107,7 +108,7 @@ Lemma cache_hit_is_preserve_by_non_conflicted_update
       (cache cache': Cache S)
       (pa pa':       PhysicalAddress)
       (c:            S)
-  : ~index_eq (phys_to_index pa) (phys_to_index pa')
+  : ~eq (phys_to_index pa) (phys_to_index pa')
     -> cache' = global_update_in_cache cache pa c
     -> cache_hit cache' pa'
     -> cache_hit cache pa'.
@@ -144,8 +145,8 @@ Lemma global_update_not_cache_preserve
       (pa pa':       PhysicalAddress)
       (c:            S)
   : ~cache_hit cache pa'
-    -> ~addr_eq pa pa'
-    -> ~index_eq (phys_to_index pa) (phys_to_index pa')
+    -> ~eq pa pa'
+    -> ~eq (phys_to_index pa) (phys_to_index pa')
     -> cache' = global_update_in_cache cache pa c
     -> ~cache_hit cache' pa'.
 Proof.
@@ -201,15 +202,15 @@ Lemma global_update_not_cache_hit {S :Set}:
   forall cache cache' :Cache S,
   forall pa pa'       :PhysicalAddress,
   forall o            :S,
-    ~ addr_eq pa pa'
-    -> index_eq (phys_to_index pa) (phys_to_index pa')
+    ~ eq pa pa'
+    -> eq (phys_to_index pa) (phys_to_index pa')
     -> cache' = global_update_in_cache cache pa o
     -> ~cache_hit cache' pa'.
 Proof.
   intros cache cache' pa pa' c Hdiff Heq Hc.
   unfold not; intro Hexf.
   rewrite Hc in Hexf.
-  apply index_eq_eq in Heq.
+  apply eq_equal in Heq.
   unfold global_update_in_cache in Hexf.
   destruct cache_hit_dec.
   + unfold update_in_cache in Hexf.
@@ -238,7 +239,7 @@ Proof.
              ) as cache''.
     rewrite add_1 in Heqcache''.
     rewrite Heqcache'' in Hexf.
-    apply addr_eq_sym in Hexf.
+    apply eq_sym in Hexf.
     apply Hdiff in Hexf.
     exact Hexf.
 Qed.
@@ -258,7 +259,7 @@ Proof.
       unfold update_in_cache in Hup
     | unfold load_in_cache in Hup
     ];
-    destruct (index_dec (phys_to_index pa) (phys_to_index pa')).
+    destruct (eq_dec (phys_to_index pa) (phys_to_index pa')).
   + rewrite Hup.
     remember (phys_to_index pa') as i'.
     remember (find_in_map
@@ -266,12 +267,12 @@ Proof.
                             (phys_to_index pa)
                             {| dirty := true; content := c; tag := pa |}) i')
       as cc.
-    apply index_eq_eq in i.
-    rewrite i in Heqcc.
+    apply eq_equal in e.
+    rewrite e in Heqcc.
     rewrite add_1 in Heqcc.
     rewrite Heqcc.
     simpl.
-    rewrite i.
+    rewrite e.
     trivial.
   + rewrite Hup.
     remember (phys_to_index pa') as i'.
@@ -300,8 +301,8 @@ Proof.
                                (phys_to_index pa)
                                {| dirty := false; content := c; tag := pa |}) i')
       as cc.
-    apply index_eq_eq in i.
-    rewrite <- i in Heqcc.
+    apply eq_equal in e.
+    rewrite <- e in Heqcc.
     rewrite add_1 in Heqcc.
     rewrite Heqcc.
     simpl.
@@ -365,7 +366,7 @@ Proof.
   unfold cache_hit, cache_location_address.
   intros cache pa Hwf.
   rewrite <- Hwf with (pa:=pa).
-  apply eq_addr_eq.
+  apply equal_eq.
   reflexivity.
 Qed.
 
@@ -405,7 +406,7 @@ Proof.
   unfold cache_location_address.
   unfold cache_hit.
   unfold cache_hit in Hhit.
-  apply addr_eq_eq in Hhit.
+  apply eq_equal in Hhit.
   rewrite <- Hhit.
   reflexivity.
 Qed.
@@ -432,19 +433,19 @@ Lemma cache_hit_same_index_cache_miss {S :Set}:
   forall c      :Cache S,
   forall pa pa' : PhysicalAddress,
     cache_hit c pa
-    -> ~ addr_eq pa pa'
-    -> index_eq (phys_to_index pa) (phys_to_index pa')
+    -> ~ eq pa pa'
+    -> eq (phys_to_index pa) (phys_to_index pa')
     -> ~ cache_hit c pa'.
 Proof.
   intros c pa pa' Hcache_hit Haddr Hindex Hcache_hit'.
   unfold cache_hit in *.
   apply Haddr.
-  apply addr_eq_eq in Hcache_hit.
-  apply addr_eq_eq in Hcache_hit'.
-  apply index_eq_eq in Hindex.
+  apply eq_equal in Hcache_hit.
+  apply eq_equal in Hcache_hit'.
+  apply eq_equal in Hindex.
   rewrite Hindex in *.
   rewrite <- Hcache_hit in Hcache_hit'.
   symmetry in Hcache_hit'.
-  apply eq_addr_eq in Hcache_hit'.
+  apply equal_eq in Hcache_hit'.
   exact Hcache_hit'.
 Qed.
