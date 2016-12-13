@@ -47,7 +47,7 @@ Proof.
 Qed.
 
 Lemma update_is_find_in_cache
-      {S:     Set}
+      {S:     Type}
       (cache: Cache S)
       (pa:    PhysicalAddress)
       (cont: S)
@@ -79,7 +79,7 @@ Proof.
 Qed.
 
 Lemma same_index_cache_hit_same_address
-      {S:      Set}
+      {S:      Type}
       (pa pa': PhysicalAddress)
       (cache:  Cache S)
   : eq (phys_to_index pa) (phys_to_index pa')
@@ -104,7 +104,7 @@ Proof.
 Qed.
 
 Lemma cache_hit_is_preserve_by_non_conflicted_update
-      {S:            Set}
+      {S:            Type}
       (cache cache': Cache S)
       (pa pa':       PhysicalAddress)
       (c:            S)
@@ -140,7 +140,7 @@ Proof.
 Qed.
 
 Lemma global_update_not_cache_preserve
-      {S:            Set}
+      {S:            Type}
       (cache cache': Cache S)
       (pa pa':       PhysicalAddress)
       (c:            S)
@@ -198,7 +198,7 @@ Proof.
     trivial.
 Qed.
 
-Lemma global_update_not_cache_hit {S :Set}:
+Lemma global_update_not_cache_hit {S :Type}:
   forall cache cache' :Cache S,
   forall pa pa'       :PhysicalAddress,
   forall o            :S,
@@ -244,16 +244,17 @@ Proof.
     exact Hexf.
 Qed.
 
-Lemma cache_stays_well_formed {S :Set}:
-  forall cache cache' :Cache S,
-  forall pa           :PhysicalAddress,
-  forall o            :S,
-    cache_is_well_formed cache
-    -> cache' = global_update_in_cache cache pa o
-    -> cache_is_well_formed cache'.
+Lemma cache_stays_well_formed
+      {S: Type}
+      (cache cache': Cache S)
+      (pa:           PhysicalAddress)
+      (c:            S)
+      (Hwf:          cache_is_well_formed cache)
+      (Hup:          cache' = global_update_in_cache cache pa c)
+    : cache_is_well_formed cache'.
 Proof.
-  unfold cache_is_well_formed, global_update_in_cache.
-  intros cache cache' pa c Hwf Hup pa'.
+  unfold cache_is_well_formed, global_update_in_cache in *.
+  intro pa'.
   destruct cache_hit_dec;
     [
       unfold update_in_cache in Hup
@@ -330,7 +331,7 @@ Proof.
     trivial.
 Qed.
 
-Lemma same_tag_means_same_index {S :Set}:
+Lemma same_tag_means_same_index {S :Type}:
   forall cache  :Cache S,
   forall pa pa' :PhysicalAddress,
     cache_is_well_formed cache
@@ -345,7 +346,7 @@ Proof.
   rewrite <- Hwf with (pa:=pa); reflexivity.
 Qed.
 
-Lemma same_index_implies_same_tag {S :Set}:
+Lemma same_index_implies_same_tag {S :Type}:
   forall cache  :Cache S,
   forall pa pa' :PhysicalAddress,
     phys_to_index pa = phys_to_index pa'
@@ -357,7 +358,7 @@ Proof.
   trivial.
 Qed.
 
-Lemma cache_hit_cache_location_address {S :Set}:
+Lemma cache_hit_cache_location_address {S :Type}:
   forall cache :Cache S,
   forall pa    :PhysicalAddress,
     cache_is_well_formed cache
@@ -370,7 +371,7 @@ Proof.
   reflexivity.
 Qed.
 
-Lemma find_in_cache_cache_location {S :Set}:
+Lemma find_in_cache_cache_location {S :Type}:
   forall cache :Cache S,
   forall pa    :PhysicalAddress,
   forall o:S,
@@ -396,7 +397,7 @@ Proof.
   reflexivity.
 Qed.
 
-Lemma cache_hit_cache_location_cache_find {S :Set}:
+Lemma cache_hit_cache_location_cache_find {S :Type}:
   forall cache :Cache S,
   forall pa    :PhysicalAddress,
     cache_hit cache pa
@@ -411,7 +412,7 @@ Proof.
   reflexivity.
 Qed.
 
-Lemma cache_location_cache_location {S:Set}:
+Lemma cache_location_cache_location {S:Type}:
   forall cache  :Cache S,
   forall pa pa' :PhysicalAddress,
     cache_is_well_formed cache
@@ -429,7 +430,7 @@ Proof.
   reflexivity.
 Qed.
 
-Lemma cache_hit_same_index_cache_miss {S :Set}:
+Lemma cache_hit_same_index_cache_miss {S :Type}:
   forall c      :Cache S,
   forall pa pa' : PhysicalAddress,
     cache_hit c pa

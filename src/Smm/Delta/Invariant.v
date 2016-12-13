@@ -8,36 +8,46 @@ Require Import SpecCert.x86.
 
 Definition invariant := Architecture Software -> Prop.
 
-Definition smramc_inv :=
-  fun (a:Architecture Software) =>
-    smramc_is_locked (memory_controller a).
+Definition smramc_inv
+           (a: Architecture Software) :=
+  smramc_is_locked (memory_controller a).
 
-Definition smram_code_inv :=
-  fun (a:Architecture Software) =>
-    forall addr:PhysicalAddress,
-      is_inside_smram addr -> find_memory_content a (dram addr) = smm.
+Definition smram_code_inv
+           (a:    Architecture Software) :=
+  forall (addr: PhysicalAddress),
+  forall (val:  Value),
+  forall (s:    Software),
+    is_inside_smram addr
+    -> find_memory_content a (dram addr) = (val, s)
+    -> s = smm.
 
-Definition smrr_inv :=
-  fun (a:Architecture Software) =>
-    forall pa:PhysicalAddress, is_inside_smram pa -> is_inside_smrr (proc a) pa.
+Definition smrr_inv
+           (a: Architecture Software) :=
+  forall (pa: PhysicalAddress),
+  is_inside_smram pa
+  -> is_inside_smrr (proc a) pa.
 
-Definition cache_clean_inv :=
-  fun (a:Architecture Software) =>
-    forall pa:PhysicalAddress, is_inside_smram pa
-                          -> cache_hit (cache a) pa
-                          -> find_cache_content a pa = Some smm.
+Definition cache_clean_inv
+           (a:   Architecture Software) :=
+  forall (pa:  PhysicalAddress),
+  forall (val: Value),
+  forall (s:    Software),
+    is_inside_smram pa
+    -> cache_hit (cache a) pa
+    -> find_cache_content a pa = Some (val, s)
+    -> s = smm.
 
-Definition ip_inv :=
-  fun (h:Architecture Software) =>
-    smm_context h = smm
-    -> is_inside_smram (ip (proc h)).
+Definition ip_inv
+           (a: Architecture Software) :=
+  smm_context a = smm
+  -> is_inside_smram (ip (proc a)).
 
-Definition smbase_inv :=
-  fun (h:Architecture Software) =>
-     is_inside_smram (smbase (proc h)).
+Definition smbase_inv
+           (a: Architecture Software) :=
+  is_inside_smram (smbase (proc a)).
 
 Definition inv :=
-  fun (a:Architecture Software) =>
+  fun (a: Architecture Software) =>
     smramc_inv a
     /\ smram_code_inv a
     /\ smrr_inv a

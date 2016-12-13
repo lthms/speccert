@@ -22,7 +22,7 @@ Proof.
   unfold x86_postcondition, write_post in Hpost.
   rewrite Hsmm_strat in Hpost.
   unfold write_uncachable in Hpost.
-  apply (update_memory_content_with_context_preserves_inv a a' pa Hinv Hpost).
+  apply (update_memory_content_with_context_preserves_inv a a' pa v Hinv Hpost).
 Qed.
 
 Lemma write_strat_sh:
@@ -58,7 +58,7 @@ Proof.
         intro Hin;
         exact Hin_smm |].
     destruct cache_hit_dec.
-    * apply (update_cache_content_with_context_preserves_inv a a' pa Hinv H Hpost).
+    * apply (update_cache_content_with_context_preserves_inv a a' pa v Hinv H Hpost).
     * remember (load_in_cache_from_memory a pa) as a''.
       assert (inv a'') as Hinv''; [
           apply (load_in_cache_from_memory_preserves_inv a a'' pa Hinv H Heqa'') |].
@@ -73,7 +73,7 @@ Proof.
         intro Hin;
           exact H1 |].
       rewrite (context_is_preserves a a'' H0) in Hpost.
-      eapply (update_cache_content_with_context_preserves_inv a'' a' pa Hinv'' H2 Hpost).
+      eapply (update_cache_content_with_context_preserves_inv a'' a' pa v Hinv'' H2 Hpost).
   + unfold write_smrrhit in Hpost.
     rewrite Hpost.
     exact Hinv.
@@ -89,7 +89,7 @@ Proof.
   intros pa v a a' Hinv Hnot_inside_smrr Hpre Hpost.
   unfold x86_postcondition in Hpost;
   unfold x86_precondition in Hpre.
-  assert (write_post smm_context pa a a') as Hx; [unfold x86_postcondition in Hpost; exact Hpost |].
+  assert (write_post smm_context pa v a a') as Hx; [unfold x86_postcondition in Hpost; exact Hpost |].
   remember (resolve_cache_strategy (proc a) pa) as strat.
   unfold write_post in Hpost.
   assert (strat = strategy (proc a)).
@@ -107,8 +107,8 @@ Proof.
     apply n in Hfalse.
     destruct Hfalse.
     destruct (cache_hit_dec (cache a) pa).
-    * apply (update_cache_content_with_context_preserves_inv a a' pa Hinv H0 Hpost).
-    * apply (load_then_update_cache_with_context_preserves_inv a a' pa Hinv H0 Hpost).
+    * apply (update_cache_content_with_context_preserves_inv a a' pa v Hinv H0 Hpost).
+    * apply (load_then_update_cache_with_context_preserves_inv a a' pa v Hinv H0 Hpost).
  + apply (write_strat_sh pa v a a' Hinv Hres Hpre Hx).
 Qed.
 
