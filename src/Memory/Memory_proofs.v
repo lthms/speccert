@@ -5,7 +5,7 @@ Require Import SpecCert.Address.
 Require Import SpecCert.Map.
 
 Lemma update_memory_1
-      {S: Set}
+      {S: Type}
       (m: Memory S)
       (k: HardwareAddress)
       (c: S)
@@ -16,7 +16,7 @@ Proof.
 Qed.
 
 Lemma update_memory_2
-      {S:    Set}
+      {S:    Type}
       (m:    Memory S)
       (k k': HardwareAddress)
       (c:    S)

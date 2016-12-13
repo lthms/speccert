@@ -18,72 +18,82 @@ Proof.
   trivial_inv_is_secure.
 Qed.
 
-Lemma fetch_memory_is_secure:
-  forall a :Architecture Software,
-    inv a
-    -> smm_context a = smm
-    -> find_memory_content a (phys_to_hard a (ip (proc a))) = smm.
+Lemma fetch_memory_is_secure
+      (a:     Architecture Software)
+      (val:   Value)
+      (s:     Software)
+      (Hinv:  inv a)
+      (Hcont: smm_context a = smm)
+      (Hfind: find_memory_content a (phys_to_hard a (ip (proc a))) = (val, s))
+  : s = smm.
 Proof.
-  intros a [Hsmramc [Hsmram [Hsmrr [Hclean [Hip Hsmbase]]]]] Hcont.
-  + unfold phys_to_hard, translate_physical_address.
-    destruct is_inside_smram_dec.
-    * unfold smm_context in Hcont.
-      destruct can_access_smram_dec; [| unfold can_access_smram in n;
-                                        intuition ].
-      rewrite Hsmram; [reflexivity | exact i ].
-      destruct is_in_smm_dec; [ apply H in i0
-                              ; destruct i0
-                              | discriminate ].
-    * unfold ip_inv in Hip.
-      apply Hip in Hcont.
-      apply n in Hcont.
-      destruct Hcont.
+  destruct Hinv as [Hsmramc [Hsmram [Hsmrr [Hclean [Hip Hsmbase]]]]].
+  unfold phys_to_hard, translate_physical_address in Hfind.
+  unfold smm_context in Hcont.
+  assert (is_in_smm (proc a))
+    by (destruct is_in_smm_dec as [Hsmm|_Hnsmm]; [exact Hsmm|discriminate]).
+  destruct is_inside_smram_dec as [Hin|Hout].
+  + destruct can_access_smram_dec.
+    * remember (find_memory_content a (dram (ip (proc a)))) as cx.
+      destruct cx as [v' s'].
+      inversion Hfind.
+      apply (Hsmram (ip (proc a)) val s Hin).
+      symmetry.
+      rewrite <- H1; rewrite <- H2.
+      exact Heqcx.
+    * unfold can_access_smram in n.
+      apply not_or_and in n.
+      destruct n as [Hfalse _H].
+      intuition.
+  + unfold ip_inv in Hip.
+    apply Hip in Hcont.
+    apply Hout in Hcont.
+    destruct Hcont.
 Qed.
 
-Lemma fetch_cache_is_secure:
-  forall a :Architecture Software,
-      inv a
-      -> smm_context a = smm
-      -> cache_hit (cache a) (ip (proc a))
-      -> resolve_cache_strategy (proc a) (ip (proc a)) = WriteBack
-      -> find_in_cache_location (cache a) (ip (proc a)) = smm.
+Lemma fetch_cache_is_secure
+      (a:          Architecture Software)
+      (val:        Value)
+      (s:          Software)
+      (Hinv:       inv a)
+      (Hcont:      smm_context a = smm)
+      (Hres:       resolve_cache_strategy (proc a) (ip (proc a)) = WriteBack)
+      (Hcache_hit: cache_hit (cache a) (ip (proc a)))
+      (Hfind:      find_in_cache_location (cache a) (ip (proc a)) = (val, s))
+  : s = smm.
 Proof.
-  intros a [_H [_G [Hsmrr [Hclean [Hip _Hs]]]]] Hcont Hres Hcache_hit.
+  destruct Hinv as [Hsmramc [Hsmram [Hsmrr [Hclean [Hip Hsmbase]]]]].
   unfold cache_clean_inv in Hclean.
-  unfold resolve_cache_strategy in Hcache_hit.
+  unfold resolve_cache_strategy in Hres.
   remember (ip (proc a)) as pa.
   destruct (is_inside_smram_dec pa).
-  + assert (is_inside_smrr (proc a) pa).
-    apply Hsmrr; exact i.
+  + assert (is_inside_smrr (proc a) pa)
+      by (apply Hsmrr; exact i).
     destruct is_inside_smrr_dec; [| intuition ].
     destruct is_in_smm_dec.
-    * assert (find_cache_content a pa = Some smm).
-      apply (Hclean pa i Hres).
-      unfold find_cache_content, find_in_cache in H0.
-      destruct (cache_hit_dec (cache a) pa); [| intuition ].
-      unfold find_in_cache_location.
-      inversion H0.
-      rewrite H2.
+    * apply (Hclean pa val s i Hcache_hit).
+      unfold find_in_cache_location in Hfind.
+      unfold find_cache_content, find_in_cache.
+      destruct cache_hit_dec; [|intuition].
+      rewrite Hfind.
       reflexivity.
-    * discriminate Hcache_hit.
+    * discriminate Hres.
   + unfold ip_inv in Hip.
     case_eq (smm_context a); intro Heqc.
     * apply Hip in Heqc.
       rewrite <- Heqpa in Heqc.
       apply n in Heqc.
       destruct Heqc.
-    * unfold smm_security_lt.
-      induction (find_in_cache_location (cache a)); [reflexivity|].
-      rewrite Hcont in Heqc.
+    * rewrite Hcont in Heqc.
       discriminate.
 Qed.
 
-Lemma exec_inv_is_secure:
-  forall v: Value,
-    inv_is_secure (hardware (Exec v)).
+Lemma exec_inv_is_secure
+      (v: Value)
+  : inv_is_secure (hardware (Exec v)).
 Proof.
   unfold inv_is_secure.
-  intros v a a' Hinv Hpre Hpost.
+  intros a a' Hinv Hpre Hpost.
   unfold software_step_isolation, software_tampering, fetched, is.
   intros t u Htrusted Huntrusted.
   apply or_not_and.
@@ -96,15 +106,42 @@ Proof.
   + case_eq (resolve_cache_strategy (proc a) (ip (proc a))); intro Heqstrat.
     * rewrite Hequ.
       right.
-      rewrite (fetch_memory_is_secure a Hinv Heqc).
-      unfold not.
+      unfold option_map.
+      remember (find_memory_content a (phys_to_hard a (ip (proc a)))) as c.
+      destruct c as [v' s].
+      simpl.
+      assert (s = smm).
+      apply (fetch_memory_is_secure a v' s Hinv Heqc).
+      symmetry.
+      exact Heqc0.
+      rewrite H.
       intro Hfalse.
-      discriminate Hfalse.
+      discriminate.
     * right; destruct (cache_hit_dec).
-      - rewrite (fetch_cache_is_secure a Hinv Heqc c Heqstrat).
-        exact Huntrusted.
-      - rewrite (fetch_memory_is_secure a Hinv Heqc).
-        exact Huntrusted.
+      - unfold option_map.
+        remember (find_in_cache_location (cache a) (ip (proc a))) as cx.
+        destruct cx as [v' s].
+        simpl.
+        assert (s = smm).
+        apply (fetch_cache_is_secure a v' s Hinv Heqc Heqstrat c).
+        symmetry.
+        exact Heqcx.
+        rewrite H.
+        rewrite Hequ.
+        intro Hfalse.
+        discriminate.
+      - unfold option_map.
+        remember (find_memory_content a (phys_to_hard a (ip (proc a)))) as c.
+        destruct c as [v' s].
+        simpl.
+        assert (s = smm).
+        apply (fetch_memory_is_secure a v' s Hinv Heqc).
+        symmetry.
+        exact Heqc0.
+        rewrite H.
+        intro Hfalse.
+        rewrite Hequ in Hfalse.
+        discriminate.
     * right.
       intro P; exact P.
   + left.

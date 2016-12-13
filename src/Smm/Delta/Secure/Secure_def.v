@@ -11,7 +11,7 @@ Definition fetched
            (ev: x86Event)
   : option Software :=
   match ev with
-  | hardware (Exec _) => find_address_content h (ip (proc h))
+  | hardware (Exec _) => option_map snd (find_address_content h (ip (proc h)))
   | _ => None
   end.
 

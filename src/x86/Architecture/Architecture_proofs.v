@@ -1,160 +1,163 @@
-Require Import SpecCert.Map.
-Require Import SpecCert.Equality.
-Require Import SpecCert.x86.Architecture.ProcessorUnit.
-Require Import SpecCert.x86.Architecture.MemoryController.
-Require Import SpecCert.x86.Architecture.Architecture_rec.
-Require Import SpecCert.x86.Architecture.Architecture_func.
-Require Import SpecCert.Memory.
 Require Import SpecCert.Address.
 Require Import SpecCert.Cache.
+Require Import SpecCert.Equality.
+Require Import SpecCert.Map.
+Require Import SpecCert.Memory.
+Require Import SpecCert.x86.Architecture.Architecture_func.
+Require Import SpecCert.x86.Architecture.Architecture_rec.
+Require Import SpecCert.x86.Architecture.MemoryController.
+Require Import SpecCert.x86.Architecture.ProcessorUnit.
+Require Import SpecCert.x86.Value.
 
-Lemma update_proc_changes_only_proc {S :Set}:
-  forall a a':Architecture S,
-  forall p   :ProcessorUnit,
-    a' = update_proc a p
-    -> memory_controller a = memory_controller a'
-      /\ memory a = memory a'
-      /\ cache a = cache a'.
+Lemma update_proc_changes_only_proc
+      {Label: Type}
+      (a a':  Architecture Label)
+      (p:     ProcessorUnit)
+      (Heqa': a' = update_proc a p)
+  : memory_controller a = memory_controller a'
+    /\ memory a = memory a'
+    /\ cache a = cache a'.
 Proof.
-  intros a a' p Hupdate.
-  unfold update_proc in Hupdate.
-  rewrite Hupdate.
+  unfold update_proc in Heqa'.
+  rewrite Heqa'.
   simpl.
   repeat split; reflexivity.
 Qed.
 
-Lemma update_proc_is_proc {S :Set}:
-  forall a a' :Architecture S,
-  forall p    :ProcessorUnit,
-    a' = update_proc a p -> proc a' = p.
+Lemma update_proc_is_proc
+      {Label: Type}
+      (a a':  Architecture Label)
+      (p:     ProcessorUnit)
+      (Heqa': a' = update_proc a p)
+  : proc a' = p.
 Proof.
-  intros a a' p Hupdate.
-  rewrite Hupdate.
+  rewrite Heqa'.
   unfold proc, update_proc.
   reflexivity.
 Qed.
 
-Lemma update_memory_controller_changes_only_memory_controller {S :Set}:
-  forall a a':Architecture S,
-  forall mc:MemoryController,
-    a' = update_memory_controller a mc
-    -> proc a = proc a'
-      /\ memory a = memory a'
-      /\ cache a = cache a'.
+Lemma update_memory_controller_changes_only_memory_controller
+      {Label: Type}
+      (a a':  Architecture Label)
+      (mc:    MemoryController)
+      (Heqa': a' = update_memory_controller a mc)
+  : proc a = proc a'
+    /\ memory a = memory a'
+    /\ cache a = cache a'.
 Proof.
-  intros a a' p Hupdate.
-  unfold update_memory_controller in Hupdate.
-  rewrite Hupdate.
+  unfold update_memory_controller in Heqa'.
+  rewrite Heqa'.
   simpl.
   repeat split; reflexivity.
 Qed.
 
-Lemma update_memory_controller_is_memory_controller {S :Set}:
-  forall a a' :Architecture S,
-  forall mc   :MemoryController,
-    a' = update_memory_controller a mc
-    -> memory_controller a' = mc.
+Lemma update_memory_controller_is_memory_controller
+      {Label: Type}
+      (a a':  Architecture Label)
+      (mc:    MemoryController)
+      (Heqa': a' = update_memory_controller a mc)
+  : memory_controller a' = mc.
 Proof.
-  intros a a' mc Hupdate.
-  rewrite Hupdate.
+  rewrite Heqa'.
   unfold memory_controller, update_memory_controller.
   reflexivity.
 Qed.
 
-Lemma update_memory_changes_only_memory {S :Set}:
-  forall a a' :Architecture S,
-  forall ha   :HardwareAddress,
-  forall c    :S,
-    a' = update_memory_content a ha c
-    -> memory_controller a = memory_controller a'
-      /\ proc a = proc a'
-      /\ cache a = cache a'.
+Lemma update_memory_changes_only_memory
+      {Label: Type}
+      (a a':  Architecture Label)
+      (ha:    HardwareAddress)
+      (c:     (Value*Label))
+      (Heqa': a' = update_memory_content a ha c)
+  : memory_controller a = memory_controller a'
+    /\ proc a = proc a'
+    /\ cache a = cache a'.
 Proof.
-  intros a a' ha c Hupdate; repeat split;
-  unfold update_memory_content in Hupdate;
-  rewrite Hupdate;
-  unfold memory_controller, proc; reflexivity.
+  repeat split;
+    unfold update_memory_content in Heqa';
+    rewrite Heqa';
+    unfold memory_controller, proc; reflexivity.
 Qed.
 
-Lemma update_ha_in_memory_changes_only_ha {S :Set}:
-  forall a      :Architecture S,
-  forall ha ha' :HardwareAddress,
-  forall c      :S,
-    ~ eq ha ha'
-    -> find_memory_content a ha' = find_memory_content (update_memory_content a ha c) ha'.
+Lemma update_ha_in_memory_changes_only_ha
+      {Label: Type}
+      (a:     Architecture Label)
+      (ha ha': HardwareAddress)
+      (c:      (Value*Label))
+      (Hdiff:  ~ eq ha ha')
+  : find_memory_content a ha' = find_memory_content (update_memory_content a ha c) ha'.
 Proof.
-  intros a ha ha' c Hdiff.
   apply update_memory_2.
   trivial.
 Qed.
 
-Lemma update_ha_in_memory_is_ha {S :Set}:
-  forall a  :Architecture S,
-  forall ha :HardwareAddress,
-  forall c:S,
-    find_memory_content (update_memory_content a ha c) ha = c.
+Lemma update_ha_in_memory_is_ha
+      {Label: Type}
+      (a:     Architecture Label)
+      (ha:    HardwareAddress)
+      (c:      (Value*Label))
+  : find_memory_content (update_memory_content a ha c) ha = c.
 Proof.
-  intros a ha c.
   unfold find_memory_content.
   apply update_memory_1.
 Qed.
 
-Lemma update_cache_content_is_find {S :Set}:
-  forall a  :Architecture S,
-  forall pa :PhysicalAddress,
-  forall c  :S,
-        find_cache_content (update_cache_content a pa c) pa = Some c.
+Lemma update_cache_content_is_find
+      {Label: Type}
+      (a:     Architecture Label)
+      (pa:    PhysicalAddress)
+      (c:      (Value*Label))
+  : find_cache_content (update_cache_content a pa c) pa = Some c.
 Proof.
-  intros a pa c.
   unfold find_cache_content, update_cache_content.
   simpl.
   apply update_is_find_in_cache.
 Qed.
 
-Lemma update_cache_changes_only_cache {S :Set}:
-  forall a a' :Architecture S,
-  forall pa   :PhysicalAddress,
-  forall c    :S,
-    a' = update_cache_content a pa c
-    -> proc a = proc a'
-      /\ memory_controller a = memory_controller a'
-      /\ memory a = memory a'.
+Lemma update_cache_changes_only_cache
+      {Label: Type}
+      (a a':  Architecture Label)
+      (pa:    PhysicalAddress)
+      (c:      (Value*Label))
+      (Heqa': a' = update_cache_content a pa c)
+  : proc a = proc a'
+    /\ memory_controller a = memory_controller a'
+    /\ memory a = memory a'.
 Proof.
-  intros a a' pa c Hupdate.
-  unfold update_cache_content in Hupdate.
-  rewrite Hupdate.
+  unfold update_cache_content in Heqa'.
+  rewrite Heqa'.
   simpl.
   intuition.
 Qed.
 
-Lemma update_ha_in_memory_changes_only_memory {S :Set}:
-  forall a a' :Architecture S,
-  forall ha   :HardwareAddress,
-  forall c    :S,
-    a' = update_memory_content a ha c
-    -> proc a = proc a'
-      /\ memory_controller a = memory_controller a'
-      /\ cache a = cache a'.
+Lemma update_ha_in_memory_changes_only_memory
+      {Label: Type}
+      (a a':  Architecture Label)
+      (ha:    HardwareAddress)
+      (c:      (Value*Label))
+      (Heqa': a' = update_memory_content a ha c)
+  : proc a = proc a'
+    /\ memory_controller a = memory_controller a'
+    /\ cache a = cache a'.
 Proof.
-  intros a a' ha c Hupdate.
-  unfold update_memory_content in Hupdate.
-  rewrite Hupdate.
+  unfold update_memory_content in Heqa'.
+  rewrite Heqa'.
   simpl.
   intuition.
 Qed.
 
-Lemma load_in_cache_from_memory_changes_only_mem_and_cache {S :Set}:
-  forall a a' :Architecture S,
-  forall pa   :PhysicalAddress,
-    a' = load_in_cache_from_memory a pa
-    -> proc a = proc a'
-      /\ memory_controller a = memory_controller a'.
+Lemma load_in_cache_from_memory_changes_only_mem_and_cache
+      {Label: Type}
+      (a a':  Architecture Label)
+      (pa:    PhysicalAddress)
+      (Heqa': a' = load_in_cache_from_memory a pa)
+  : proc a = proc a'
+    /\ memory_controller a = memory_controller a'.
 Proof.
-  intros a a' pa Hload.
-  unfold load_in_cache_from_memory in Hload.
+  unfold load_in_cache_from_memory in Heqa'.
   destruct (cache_location_is_dirty_dec (cache a) pa).
-  + apply update_cache_changes_only_cache in Hload.
-    destruct Hload as [Hproc [Hmc Hmem]].
+  + apply update_cache_changes_only_cache in Heqa'.
+    destruct Heqa' as [Hproc [Hmc Hmem]].
     remember (update_memory_content a
                                     (phys_to_hard a (cache_location_address (cache a) pa))
                                     (find_in_cache_location (cache a) pa))
@@ -164,20 +167,20 @@ Proof.
     rewrite <- Hproc' in Hproc.
     rewrite <- Hmc' in Hmc.
     intuition.
-  + apply update_cache_changes_only_cache in Hload.
-    destruct Hload as [Hproc [Hmc Hmem]].
+  + apply update_cache_changes_only_cache in Heqa'.
+    destruct Heqa' as [Hproc [Hmc Hmem]].
     intuition.
 Qed.
 
-Lemma update_cache_content_changes_only_index {S:Set}:
-  forall pa pa' :PhysicalAddress,
-  forall a      :Architecture S,
-  forall c      :S,
-    ~ index_eq (phys_to_index pa) (phys_to_index pa')
-    -> find_cache_content (update_cache_content a pa c) pa'
-      = find_cache_content a pa'.
+Lemma update_cache_content_changes_only_index
+      {Label:  Type}
+      (a:      Architecture Label)
+      (pa pa': PhysicalAddress)
+      (c:      (Value*Label))
+      (Hneq:   ~ eq (phys_to_index pa) (phys_to_index pa'))
+  : find_cache_content (update_cache_content a pa c) pa'
+    = find_cache_content a pa'.
 Proof.
-  intros pa pa' a c Hneq.
   unfold find_cache_content, update_cache_content.
   unfold find_in_cache.
   unfold global_update_in_cache.
@@ -214,7 +217,6 @@ Proof.
          ); [
     | intuition
     ].
-  clear c0.
   unfold not; intro Hhit'.
   unfold cache_hit in Hhit'.
   rewrite <- add_2 with (k:=phys_to_index pa)
@@ -226,7 +228,6 @@ Proof.
                                       |}
                                    )
     in Hhit'.
-  unfold cache_hit in n.
   intuition.
   trivial.
   assert (cache_hit
@@ -259,17 +260,17 @@ Proof.
   reflexivity.
 Qed.
 
-Lemma update_same_index_is_find_in_cache {S :Set}:
-  forall a      :Architecture S,
-  forall pa pa' :PhysicalAddress,
-  forall c      :S,
-    index_eq (phys_to_index pa) (phys_to_index pa')
-    -> find_cache_location_content (update_cache_content a pa c) pa' = c.
+Lemma update_same_index_is_find_in_cache
+      {Label:  Type}
+      (a:      Architecture Label)
+      (pa pa': PhysicalAddress)
+      (c:      (Value*Label))
+      (Heq:    eq (phys_to_index pa) (phys_to_index pa'))
+  : find_cache_location_content (update_cache_content a pa c) pa' = c.
 Proof.
-  intros a pa pa' c Heq.
   unfold find_cache_location_content, update_cache_content.
   simpl.
-  apply index_eq_eq in Heq.
+  apply eq_equal in Heq.
   unfold find_in_cache_location, global_update_in_cache.
   repeat destruct cache_hit_dec.
   + unfold update_in_cache.

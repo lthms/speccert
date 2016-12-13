@@ -121,6 +121,6 @@ Proof.
   unfold preserve.
   intros v a a' Hinv Hpre Hpost.
   apply (read_inv (ip (proc a)) v a a'); [ exact Hinv | idtac |].
-  + unfold x86_precondition, no_pre; trivial.
+  + unfold x86_precondition, read_pre, no_pre; trivial.
   + unfold x86_postcondition in *; exact Hpost.
 Qed.
