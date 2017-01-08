@@ -11,9 +11,10 @@ Require Import SpecCert.Smm.Software.
 Require Import SpecCert.x86.
 
 Lemma read_strat_uc
+      (r:  R)
       (pa: PhysicalAddress)
-      (v: Value)
-  : partial_preserve (Read pa v)
+      (v:  Value)
+  : partial_preserve (Read r pa v)
                      (fun a => resolve_cache_strategy (proc a) pa = Uncachable)
                      inv.
 Proof.
@@ -27,9 +28,10 @@ Proof.
 Qed.
 
 Lemma read_strat_sh
+      (r:  R)
       (pa: PhysicalAddress)
       (v:  Value)
-  : partial_preserve (Read pa v)
+  : partial_preserve (Read r pa v)
                      (fun a => resolve_cache_strategy (proc a) pa = SmrrHit)
                      inv.
 Proof.
@@ -43,9 +45,10 @@ Proof.
 Qed.
 
 Lemma read_strat_smrr_wb
+      (r:  R)
       (pa: PhysicalAddress)
       (v:  Value)
-    : partial_preserve (Read pa v)
+    : partial_preserve (Read r pa v)
                        (fun a => is_inside_smrr (proc a) pa
                                  /\ smm_strategy (smrr (proc a)) = WriteBack)
                        inv.
@@ -69,9 +72,10 @@ Proof.
 Qed.
 
 Lemma read_strat_not_smrr
-      (pa :PhysicalAddress)
-      (v: Value)
-  : partial_preserve (Read pa v)
+      (r:  R)
+      (pa: PhysicalAddress)
+      (v:  Value)
+  : partial_preserve (Read r pa v)
                      (fun a => ~ is_inside_smrr (proc a) pa)
                      inv.
 Proof.
@@ -99,14 +103,15 @@ Proof.
 Qed.
 
 Lemma read_inv
+      (r:  R)
       (pa: PhysicalAddress)
       (v:  Value)
-  : preserve (Read pa v) inv.
+  : preserve (Read r pa v) inv.
 Proof.
   unfold preserve.
   intros a a' Hinv Hpre Hpost.
   case_eq (resolve_cache_strategy (proc a) pa); intro Heqstrat.
-  + apply (read_strat_uc pa v a a' Hinv Heqstrat Hpre Hpost).
+  + apply (read_strat_uc r pa v a a' Hinv Heqstrat Hpre Hpost).
   + destruct (is_inside_smrr_dec (proc a) pa).
     * unfold resolve_cache_strategy in Heqstrat.
       destruct is_inside_smrr_dec; [| intuition ].
@@ -114,18 +119,7 @@ Proof.
       assert (is_inside_smrr (proc a) pa /\ smm_strategy (smrr (proc a)) = WriteBack); [
           split; trivial
          |].
-      apply (read_strat_smrr_wb pa v a a' Hinv H Hpre Hpost).
-    * apply (read_strat_not_smrr pa v a a' Hinv n Hpre Hpost).
-  + apply (read_strat_sh pa v a a' Hinv Heqstrat Hpre Hpost).
-Qed.
-
-Lemma exec_inv
-      (v: Value)
-  : preserve (Exec v) inv.
-Proof.
-  unfold preserve.
-  intros a a' Hinv Hpre Hpost.
-  apply (read_inv (ip (proc a)) v a a'); [ exact Hinv | idtac |].
-  + unfold x86_precondition, read_pre, no_pre; trivial.
-  + unfold x86_postcondition in *; exact Hpost.
+      apply (read_strat_smrr_wb r pa v a a' Hinv H Hpre Hpost).
+    * apply (read_strat_not_smrr r pa v a a' Hinv n Hpre Hpost).
+  + apply (read_strat_sh r pa v a a' Hinv Heqstrat Hpre Hpost).
 Qed.

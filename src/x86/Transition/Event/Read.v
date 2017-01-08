@@ -1,3 +1,4 @@
+Require Import SpecCert.x86.Event.
 Require Import SpecCert.x86.Architecture.
 Require Import SpecCert.x86.Value.
 Require Import SpecCert.Address.
@@ -6,9 +7,11 @@ Require Import SpecCert.Interval.
 
 Definition read_pre
            {Label: Type}
+           (r:     R)
            (pa:    PhysicalAddress)
            (val:   Value)
            (a:     Architecture Label) :=
+  (r = Fetch -> pa = ip (proc a)) /\
   option_map fst (find_address_content a pa) = Some val.
 
 Definition read_uncachable_post

@@ -24,6 +24,5 @@ Proof.
     | apply close_smram_inv_is_secure
     | apply lock_smramc_inv_is_secure
     | apply nextinstr_inv_is_secure
-    | apply exec_inv_is_secure
     | apply receive_interrupt_inv_is_secure ].
 Qed.

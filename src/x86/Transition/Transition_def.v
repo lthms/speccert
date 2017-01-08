@@ -32,14 +32,13 @@ Definition x86_precondition
   match ev with
   | DisableInterrupt     => no_pre
   | EnableInterrupt      => no_pre
-  | (Write addr value)   => no_pre
-  | (Read addr value)    => read_pre addr value
+  | Write addr value     => no_pre
+  | Read r addr value    => read_pre r addr value
   | OpenSmram            => open_smram_pre
   | CloseSmram           => close_smram_pre
   | LockSmramc           => lock_smramc_pre
-  | (NextInstruction pa) => no_pre
-  | (ReceiveInterrupt i) => no_pre
-  | (Exec value)         => read_pre (ip (proc a)) value
+  | NextInstruction pa   => no_pre
+  | ReceiveInterrupt i   => no_pre
   end a.
 
 Definition x86_postcondition
@@ -52,12 +51,11 @@ Definition x86_postcondition
   match ev with
   | DisableInterrupt     => disable_interrupt_post
   | EnableInterrupt      => enable_interrupt_post
-  | (Write addr value)   => write_post context addr value
-  | (Read addr value)    => read_post addr
+  | Write addr value     => write_post context addr value
+  | Read _ addr value    => read_post addr
   | OpenSmram            => open_smram_post
   | CloseSmram           => close_smram_post
   | LockSmramc           => lock_smramc_post
-  | (NextInstruction pa) => nextinstr_post pa
-  | (ReceiveInterrupt i) => receive_interrupt_post i
-  | (Exec value)         => read_post (ip (proc h))
+  | NextInstruction pa   => nextinstr_post pa
+  | ReceiveInterrupt i   => receive_interrupt_post i
   end h h'.
