@@ -11,28 +11,30 @@ Require Import SpecCert.Smm.Delta.Preserve.Architecture.
 Require Import SpecCert.Smm.Software.
 Require Import SpecCert.x86.
 
-Lemma write_strat_uc:
-  forall (pa :PhysicalAddress) (v: Value),
-    partial_preserve (software (Write pa v))
+Lemma write_strat_uc
+      (pa: PhysicalAddress)
+      (v:  Value)
+  : partial_preserve (Write pa v)
                      (fun a => resolve_cache_strategy (proc a) pa = Uncachable)
                      inv.
 Proof.
   unfold partial_preserve.
-  intros pa v a a' Hinv Hsmm_strat Hpre Hpost.
+  intros a a' Hinv Hsmm_strat Hpre Hpost.
   unfold x86_postcondition, write_post in Hpost.
   rewrite Hsmm_strat in Hpost.
   unfold write_uncachable in Hpost.
   apply (update_memory_content_with_context_preserves_inv a a' pa v Hinv Hpost).
 Qed.
 
-Lemma write_strat_sh:
-  forall (pa :PhysicalAddress) (v: Value),
-    partial_preserve (software (Write pa v))
+Lemma write_strat_sh
+      (pa: PhysicalAddress)
+      (v: Value)
+  : partial_preserve (Write pa v)
                      (fun a => resolve_cache_strategy (proc a) pa = SmrrHit)
                      inv.
 Proof.
   unfold partial_preserve.
-  intros pa v a a' Hinv Hsmm_strat Hpre Hpost.
+  intros a a' Hinv Hsmm_strat Hpre Hpost.
   unfold x86_postcondition, write_post in Hpost.
   rewrite Hsmm_strat in Hpost.
   unfold write_smrrhit in Hpost.
@@ -40,15 +42,16 @@ Proof.
   exact Hinv.
 Qed.
 
-Lemma write_strat_smrr_wb:
-  forall (pa :PhysicalAddress) (v: Value),
-    partial_preserve (software (Write pa v))
+Lemma write_strat_smrr_wb
+      (pa: PhysicalAddress)
+      (v:  Value)
+  : partial_preserve (Write pa v)
                      (fun a => is_inside_smrr (proc a) pa
                             /\ smm_strategy (smrr (proc a)) = WriteBack)
                      inv.
 Proof.
   unfold partial_preserve.
-  intros pa v a a' Hinv [Hinside_smrr Hsmm_strat] Hpre Hpost.
+  intros a a' Hinv [Hinside_smrr Hsmm_strat] Hpre Hpost.
   unfold x86_postcondition, write_post, resolve_cache_strategy in Hpost.
   destruct is_inside_smrr_dec; [| intuition ].
   destruct is_in_smm_dec as [Hin_smm|Hnot].
@@ -79,14 +82,15 @@ Proof.
     exact Hinv.
 Qed.
 
-Lemma write_not_smrr:
-  forall (pa :PhysicalAddress) (v: Value),
-    partial_preserve (software (Write pa v))
+Lemma write_not_smrr
+      (pa: PhysicalAddress)
+      (v: Value)
+  : partial_preserve (Write pa v)
                      (fun a => ~ is_inside_smrr (proc a) pa)
                      inv.
 Proof.
   unfold partial_preserve.
-  intros pa v a a' Hinv Hnot_inside_smrr Hpre Hpost.
+  intros a a' Hinv Hnot_inside_smrr Hpre Hpost.
   unfold x86_postcondition in Hpost;
   unfold x86_precondition in Hpre.
   assert (write_post smm_context pa v a a') as Hx; [unfold x86_postcondition in Hpost; exact Hpost |].
@@ -112,12 +116,13 @@ Proof.
  + apply (write_strat_sh pa v a a' Hinv Hres Hpre Hx).
 Qed.
 
-Lemma write_inv:
-  forall (pa :PhysicalAddress) (v: Value),
-    preserve (software (Write pa v)) inv.
+Lemma write_inv
+      (pa: PhysicalAddress)
+      (v: Value)
+  : preserve (Write pa v) inv.
 Proof.
   unfold preserve.
-  intros pa v a a' Hinv Htrans.
+  intros a a' Hinv Htrans.
   destruct (is_inside_smrr_dec (proc a) pa).
   + case_eq (resolve_cache_strategy (proc a) pa); intro Hres.
     * apply (write_strat_uc pa v a a' Hinv Hres Htrans).

@@ -9,7 +9,7 @@ Require Import SpecCert.Smm.Software.
 Require Import SpecCert.x86.
 
 Lemma lock_smramc_inv_is_secure:
-  inv_is_secure (software LockSmramc).
+  inv_is_secure LockSmramc.
 Proof.
   trivial_inv_is_secure.
 Qed.

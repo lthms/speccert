@@ -7,7 +7,7 @@ Require Import SpecCert.Smm.Software.
 Require Import SpecCert.x86.
 
 Lemma disable_interrupt_inv_is_secure:
-  inv_is_secure (software DisableInterrupt).
+  inv_is_secure DisableInterrupt.
 Proof.
   trivial_inv_is_secure.
 Qed.

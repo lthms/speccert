@@ -10,11 +10,11 @@ Require Import SpecCert.Smm.Software.
 Require Import SpecCert.x86.
 Require Import SpecCert.Cache.
 
-Lemma read_inv_is_secure:
-  forall (pa:PhysicalAddress) (v: Value),
-    inv_is_secure (software (Read pa v)).
+Lemma read_inv_is_secure
+      (pa: PhysicalAddress)
+      (v:  Value)
+  : inv_is_secure (Read pa v).
 Proof.
-  intros pa v.
   trivial_inv_is_secure.
 Qed.
 
@@ -90,7 +90,7 @@ Qed.
 
 Lemma exec_inv_is_secure
       (v: Value)
-  : inv_is_secure (hardware (Exec v)).
+  : inv_is_secure (Exec v).
 Proof.
   unfold inv_is_secure.
   intros a a' Hinv Hpre Hpost.

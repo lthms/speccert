@@ -30,16 +30,16 @@ Definition x86_precondition
            (ev: x86Event)
   : Prop :=
   match ev with
-  | software DisableInterrupt     => no_pre
-  | software EnableInterrupt      => no_pre
-  | software (Write addr value)   => no_pre
-  | software (Read addr value)    => read_pre addr value
-  | software OpenSmram            => open_smram_pre
-  | software CloseSmram           => close_smram_pre
-  | software LockSmramc           => lock_smramc_pre
-  | software (NextInstruction pa) => no_pre
-  | hardware (ReceiveInterrupt i) => no_pre
-  | hardware (Exec value)         => read_pre (ip (proc a)) value
+  | DisableInterrupt     => no_pre
+  | EnableInterrupt      => no_pre
+  | (Write addr value)   => no_pre
+  | (Read addr value)    => read_pre addr value
+  | OpenSmram            => open_smram_pre
+  | CloseSmram           => close_smram_pre
+  | LockSmramc           => lock_smramc_pre
+  | (NextInstruction pa) => no_pre
+  | (ReceiveInterrupt i) => no_pre
+  | (Exec value)         => read_pre (ip (proc a)) value
   end a.
 
 Definition x86_postcondition
@@ -50,14 +50,14 @@ Definition x86_postcondition
            (h':      Architecture S)
   : Prop :=
   match ev with
-  | software DisableInterrupt     => disable_interrupt_post
-  | software EnableInterrupt      => enable_interrupt_post
-  | software (Write addr value)   => write_post context addr value
-  | software (Read addr value)    => read_post addr
-  | software OpenSmram            => open_smram_post
-  | software CloseSmram           => close_smram_post
-  | software LockSmramc           => lock_smramc_post
-  | software (NextInstruction pa) => nextinstr_post pa
-  | hardware (ReceiveInterrupt i) => receive_interrupt_post i
-  | hardware (Exec value)         => read_post (ip (proc h))
+  | DisableInterrupt     => disable_interrupt_post
+  | EnableInterrupt      => enable_interrupt_post
+  | (Write addr value)   => write_post context addr value
+  | (Read addr value)    => read_post addr
+  | OpenSmram            => open_smram_post
+  | CloseSmram           => close_smram_post
+  | LockSmramc           => lock_smramc_post
+  | (NextInstruction pa) => nextinstr_post pa
+  | (ReceiveInterrupt i) => receive_interrupt_post i
+  | (Exec value)         => read_post (ip (proc h))
   end h h'.

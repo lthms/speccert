@@ -3,7 +3,7 @@ Require Import SpecCert.Smm.Delta.Invariant.
 Require Import SpecCert.x86.
 
 Lemma lock_smramc_inv:
-  preserve_inv (software LockSmramc).
+  preserve_inv LockSmramc.
 Proof.
   unfold preserve_inv.
   unfold inv.

@@ -56,9 +56,9 @@ Definition inv :=
     /\ smbase_inv a.
 
 Definition partial_preserve
-           (ev   :x86Event)
-           (prop :Architecture Software -> Prop)
-           (i    :Architecture Software -> Prop) :=
+           (ev:   x86Event)
+           (prop: Architecture Software -> Prop)
+           (i:    Architecture Software -> Prop) :=
   forall h h': Architecture Software,
     inv h
     -> prop h
@@ -66,57 +66,57 @@ Definition partial_preserve
     -> x86_postcondition smm_context h ev h'
     -> i h'.
 
-Definition software_partial_preserve
-           (ev   :SoftwareEvent)
-           (prop :Architecture Software -> Prop)
-           (i    :Architecture Software -> Prop) :=
+Program Definition software_partial_preserve
+        (ev:   { e: x86Event | x86_software e})
+        (prop: Architecture Software -> Prop)
+        (i:    Architecture Software -> Prop) :=
   forall h h': Architecture Software,
     inv h
     -> prop h
     -> smm_behavior h ev
-    -> x86_precondition h (software ev)
-    -> x86_postcondition smm_context h (software ev) h'
+    -> x86_precondition h ev
+    -> x86_postcondition smm_context h ev h'
     -> i h'.
 
 Definition preserve
-           (ev :x86Event)
-           (i  :Architecture Software -> Prop) :=
+           (ev: x86Event)
+           (i:  Architecture Software -> Prop) :=
   forall h h': Architecture Software,
     inv h
     -> x86_precondition h ev
     -> x86_postcondition smm_context h ev h'
     -> i h'.
 
-Definition software_preserve
-           (ev :SoftwareEvent)
-           (i  :Architecture Software -> Prop) :=
+Program Definition software_preserve
+        (ev: { e: x86Event | x86_software e})
+        (i:  Architecture Software -> Prop) :=
   forall h h': Architecture Software,
     inv h
     -> smm_behavior h ev
-    -> x86_precondition h (software ev)
-    -> x86_postcondition smm_context h (software ev) h'
+    -> x86_precondition h ev
+    -> x86_postcondition smm_context h ev h'
     -> i h'.
 
 Definition preserve_inv
-           (ev:x86Event) :=
+           (ev: x86Event) :=
   forall h h': Architecture Software,
     inv h
     -> x86_precondition h ev
     -> x86_postcondition smm_context h ev h'
     -> inv h'.
 
-Definition software_preserve_inv
-           (ev:SoftwareEvent) :=
+Program Definition software_preserve_inv
+        (ev: { e: x86Event | x86_software e}) :=
   forall h h': Architecture Software,
     inv h
     -> smm_behavior h ev
-    -> x86_precondition h (software ev)
-    -> x86_postcondition smm_context h (software ev) h'
+    -> x86_precondition h ev
+    -> x86_postcondition smm_context h ev h'
     -> inv h'.
 
 Definition partial_preserve_inv
-           (ev    :x86Event)
-           (prop :Architecture Software -> Prop)
+           (ev:    x86Event)
+           (prop:  Architecture Software -> Prop)
   := forall h h': Architecture Software,
     inv h
     -> prop h
@@ -124,15 +124,15 @@ Definition partial_preserve_inv
     -> x86_postcondition smm_context h ev h'
     -> inv h'.
 
-Definition software_partial_preserve_inv
-           (ev    :SoftwareEvent)
-           (prop :Architecture Software -> Prop)
+Program Definition software_partial_preserve_inv
+        (ev:   { e: x86Event | x86_software e})
+        (prop: Architecture Software -> Prop)
   := forall h h',
     inv h
     -> prop h
     -> smm_behavior h ev
-    -> x86_precondition h (software ev)
-    -> x86_postcondition smm_context h (software ev) h'
+    -> x86_precondition h ev
+    -> x86_postcondition smm_context h ev h'
     -> inv h'.
 
 Ltac intros_preserve :=

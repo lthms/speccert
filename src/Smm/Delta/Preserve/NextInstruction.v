@@ -1,3 +1,5 @@
+Require Import Program.
+
 Require Import SpecCert.Address.
 Require Import SpecCert.Cache.
 Require Import SpecCert.Formalism.
@@ -9,11 +11,10 @@ Require Import SpecCert.Smm.Delta.Preserve.Architecture.
 Require Import SpecCert.Smm.Software.
 Require Import SpecCert.x86.
 
-Lemma nextinstr_smramc_inv:
-  forall pa :PhysicalAddress,
-    preserve (software (NextInstruction pa)) smramc_inv.
+Lemma nextinstr_smramc_inv
+      (pa: PhysicalAddress)
+  : preserve (NextInstruction pa) smramc_inv.
 Proof.
-  intro pa.
   intros_preserve.
   unfold nextinstr_post in Hpost.
   unfold smramc_inv.
@@ -22,11 +23,10 @@ Proof.
   apply Hsmramc.
 Qed.
 
-Lemma nextinstr_smram_code_inv:
-  forall pa :PhysicalAddress,
-    preserve (software (NextInstruction pa)) smram_code_inv.
+Lemma nextinstr_smram_code_inv
+      (pa: PhysicalAddress)
+  : preserve (NextInstruction pa) smram_code_inv.
 Proof.
-  intro pa.
   intros_preserve.
   unfold nextinstr_post in Hpost.
   unfold smram_code_inv, find_memory_content.
@@ -35,11 +35,10 @@ Proof.
   apply Hsmram.
 Qed.
 
-Lemma nextinstr_smrr_inv:
-  forall pa :PhysicalAddress,
-    preserve (software (NextInstruction pa)) smrr_inv.
+Lemma nextinstr_smrr_inv
+      (pa: PhysicalAddress)
+  : preserve (NextInstruction pa) smrr_inv.
 Proof.
-  intro pa.
   intros_preserve.
   unfold nextinstr_post in Hpost.
   rewrite Hpost.
@@ -48,22 +47,20 @@ Proof.
   apply Hsmrr.
 Qed.
 
-Lemma nextinstr_cache_clean_inv:
-  forall pa :PhysicalAddress,
-    preserve (software (NextInstruction pa)) cache_clean_inv.
+Lemma nextinstr_cache_clean_inv
+      (pa: PhysicalAddress)
+  : preserve (NextInstruction pa) cache_clean_inv.
 Proof.
-  intro pa.
   intros_preserve.
   unfold nextinstr_post in Hpost.
   rewrite Hpost.
   apply Hclean.
 Qed.
 
-Lemma nextinstr_ip_inv:
-  forall pa :PhysicalAddress,
-    software_preserve (NextInstruction pa) ip_inv.
+Program Lemma nextinstr_ip_inv
+        (pa: PhysicalAddress)
+  : software_preserve (NextInstruction' pa) ip_inv.
 Proof.
-  intro pa.
   intros_soft_preserve.
   unfold nextinstr_post in Hpost.
   rewrite Hpost.
@@ -75,22 +72,20 @@ Proof.
   exact Hcont.
 Qed.
 
-Lemma nextinstr_smbase_inv:
-  forall pa :PhysicalAddress,
-    preserve (software (NextInstruction pa)) smbase_inv.
+Lemma nextinstr_smbase_inv
+      (pa: PhysicalAddress)
+  : preserve (NextInstruction pa) smbase_inv.
 Proof.
-  intro pa.
   intros_preserve.
   unfold nextinstr_post in Hpost.
   rewrite Hpost.
   apply Hsmbase.
 Qed.
 
-Lemma nextinstr_inv:
-  forall pa :PhysicalAddress,
-    software_preserve (NextInstruction pa) inv.
+Lemma nextinstr_inv
+      (pa: PhysicalAddress)
+  : software_preserve (NextInstruction' pa) inv.
 Proof.
-  intro pa.
   unfold software_preserve.
   intros a a' Hinv Hsmm Hpre Hpost.
   split; [| split; [| split; [| split; [| split]]]].

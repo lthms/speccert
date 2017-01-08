@@ -8,10 +8,9 @@ Require Import SpecCert.Smm.Delta.Secure.Secure_def.
 Require Import SpecCert.Smm.Software.
 Require Import SpecCert.x86.
 
-Lemma nextinstr_inv_is_secure:
-  forall pa :PhysicalAddress,
-    inv_is_secure (software (NextInstruction pa)).
+Lemma nextinstr_inv_is_secure
+      (pa: PhysicalAddress)
+  : inv_is_secure (NextInstruction pa).
 Proof.
-  intro pa.
   trivial_inv_is_secure.
 Qed.

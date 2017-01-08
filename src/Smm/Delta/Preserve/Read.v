@@ -10,14 +10,15 @@ Require Import SpecCert.Smm.Delta.Preserve.Architecture.
 Require Import SpecCert.Smm.Software.
 Require Import SpecCert.x86.
 
-Lemma read_strat_uc:
-  forall (pa :PhysicalAddress) (v: Value),
-      partial_preserve (software (Read pa v))
-                       (fun a => resolve_cache_strategy (proc a) pa = Uncachable)
-                       inv.
+Lemma read_strat_uc
+      (pa: PhysicalAddress)
+      (v: Value)
+  : partial_preserve (Read pa v)
+                     (fun a => resolve_cache_strategy (proc a) pa = Uncachable)
+                     inv.
 Proof.
   unfold partial_preserve.
-  intros pa v a a' Hinv Hres Hpre Hpost.
+  intros a a' Hinv Hres Hpre Hpost.
   unfold x86_postcondition, read_post in Hpost.
   rewrite Hres in Hpost.
   unfold read_uncachable_post in Hpost.
@@ -25,14 +26,15 @@ Proof.
   exact Hinv.
 Qed.
 
-Lemma read_strat_sh:
-  forall (pa :PhysicalAddress) (v: Value),
-      partial_preserve (software (Read pa v))
-                       (fun a => resolve_cache_strategy (proc a) pa = SmrrHit)
-                       inv.
+Lemma read_strat_sh
+      (pa: PhysicalAddress)
+      (v:  Value)
+  : partial_preserve (Read pa v)
+                     (fun a => resolve_cache_strategy (proc a) pa = SmrrHit)
+                     inv.
 Proof.
   unfold partial_preserve.
-  intros pa v a a' Hinv Hres Hpre Hpost.
+  intros a a' Hinv Hres Hpre Hpost.
   unfold x86_postcondition, read_post in Hpost.
   rewrite Hres in Hpost.
   unfold read_smrrhit_post in Hpost.
@@ -40,15 +42,16 @@ Proof.
   exact Hinv.
 Qed.
 
-Lemma read_strat_smrr_wb:
-  forall (pa :PhysicalAddress) (v: Value),
-      partial_preserve (software (Read pa v))
+Lemma read_strat_smrr_wb
+      (pa: PhysicalAddress)
+      (v:  Value)
+    : partial_preserve (Read pa v)
                        (fun a => is_inside_smrr (proc a) pa
-                              /\ smm_strategy (smrr (proc a)) = WriteBack)
+                                 /\ smm_strategy (smrr (proc a)) = WriteBack)
                        inv.
 Proof.
   unfold partial_preserve.
-  intros pa v a a' Hinv [Hsmrr Hsmm] Hpre Hpost.
+  intros a a' Hinv [Hsmrr Hsmm] Hpre Hpost.
   unfold x86_postcondition, read_post, resolve_cache_strategy in Hpost.
   destruct is_inside_smrr_dec; [| intuition ].
   destruct is_in_smm_dec.
@@ -65,14 +68,15 @@ Proof.
     exact Hinv.
 Qed.
 
-Lemma read_strat_not_smrr:
-  forall (pa :PhysicalAddress) (v: Value),
-      partial_preserve (software (Read pa v))
-                       (fun a => ~ is_inside_smrr (proc a) pa)
-                       inv.
+Lemma read_strat_not_smrr
+      (pa :PhysicalAddress)
+      (v: Value)
+  : partial_preserve (Read pa v)
+                     (fun a => ~ is_inside_smrr (proc a) pa)
+                     inv.
 Proof.
   unfold partial_preserve.
-  intros pa v a a' Hinv Hnot_smrr Hpre Hpost.
+  intros a a' Hinv Hnot_smrr Hpre Hpost.
   unfold x86_postcondition, read_post in Hpost.
   unfold resolve_cache_strategy in Hpost.
   destruct is_inside_smrr_dec; [ intuition |].
@@ -94,12 +98,13 @@ Proof.
     exact Hinv.
 Qed.
 
-Lemma read_inv:
-  forall (pa :PhysicalAddress) (v: Value),
-      preserve (software (Read pa v)) inv.
+Lemma read_inv
+      (pa: PhysicalAddress)
+      (v:  Value)
+  : preserve (Read pa v) inv.
 Proof.
   unfold preserve.
-  intros pa v a a' Hinv Hpre Hpost.
+  intros a a' Hinv Hpre Hpost.
   case_eq (resolve_cache_strategy (proc a) pa); intro Heqstrat.
   + apply (read_strat_uc pa v a a' Hinv Heqstrat Hpre Hpost).
   + destruct (is_inside_smrr_dec (proc a) pa).
@@ -114,12 +119,12 @@ Proof.
   + apply (read_strat_sh pa v a a' Hinv Heqstrat Hpre Hpost).
 Qed.
 
-Lemma exec_inv:
-  forall (v: Value),
-    preserve (hardware (Exec v)) inv.
+Lemma exec_inv
+      (v: Value)
+  : preserve (Exec v) inv.
 Proof.
   unfold preserve.
-  intros v a a' Hinv Hpre Hpost.
+  intros a a' Hinv Hpre Hpost.
   apply (read_inv (ip (proc a)) v a a'); [ exact Hinv | idtac |].
   + unfold x86_precondition, read_pre, no_pre; trivial.
   + unfold x86_postcondition in *; exact Hpost.

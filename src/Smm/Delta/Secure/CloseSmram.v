@@ -9,7 +9,7 @@ Require Import SpecCert.Smm.Software.
 Require Import SpecCert.x86.
 
 Lemma close_smram_inv_is_secure:
-  inv_is_secure (software CloseSmram).
+  inv_is_secure CloseSmram.
 Proof.
   trivial_inv_is_secure.
 Qed.

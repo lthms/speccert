@@ -3,7 +3,7 @@ Require Import SpecCert.Smm.Delta.Invariant.
 Require Import SpecCert.x86.
 
 Lemma enable_interrupt_inv:
-  preserve_inv (software EnableInterrupt).
+  preserve_inv EnableInterrupt.
 Proof.
   unfold preserve_inv.
   unfold inv.

@@ -3,7 +3,7 @@ Require Import SpecCert.Smm.Delta.Invariant.
 Require Import SpecCert.x86.
 
 Lemma open_smram_inv:
-  preserve_inv (software OpenSmram).
+  preserve_inv OpenSmram.
 Proof.
   unfold preserve_inv.
   unfold inv.

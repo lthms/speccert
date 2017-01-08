@@ -4,77 +4,82 @@
     precondition is a predicate on H x E and postcondition is a predicate
     on H x E x H.
 **)
-Inductive Event
-          (Es Eh: Type)
-  :=
-  | software (es: Es): Event Es Eh
-  | hardware (eh: Eh): Event Es Eh.
 
-Arguments software [Es Eh] (es).
-Arguments hardware [Es Eh] (eh).
+Class Event (E: Type) :=
+  { software : E -> Prop
+  ; software_dec: forall (e: E), { software e } + { ~ software e } }.
 
 Record ComputingSystem
-       (H Es Eh: Type) :=
-  { precondition: H -> Event Es Eh -> Prop
-  ; postcondition: H -> Event Es Eh -> H -> Prop }.
+       (Hw Ev:  Type)
+      `{Event Ev}
+  :=
+  { precondition: Hw -> Ev -> Prop
+  ; postcondition: Hw -> Ev -> Hw -> Prop }.
 
-Arguments precondition [H Es Eh] (_ _ _).
-Arguments postcondition [H Es Eh] (_ _ _ _).
+Arguments precondition [Hw Ev H] (_ _ _).
+Arguments postcondition [Hw Ev H] (_ _ _ _).
 
 (**
     A Computing System C defines a semantics of events as state-transformers
 **)
 Definition state_transformation
-           {H Es Eh: Type}
-           (C:       ComputingSystem H Es Eh)
+           {H E:     Type}
+          `{Event E}
+           (C:       ComputingSystem H E)
            (h:       H)
-           (ev:      Event Es Eh)
+           (ev:      E)
            (h':      H)
   : Prop :=
   precondition C h ev /\ postcondition C h ev h'.
+
+Notation "h -[ C | ev ]-> h'" := (state_transformation C h ev h') (at level 81).
 
 (**
     A Run of a Computing System C is a sequence of state-transformations
     of C.
 **)
 Inductive Run
-          {H Es Eh:   Type}
-          (C:         ComputingSystem H Es Eh)
+          {H E:       Type}
+         `{evInst:    Event E}
+          (C:         ComputingSystem H E)
           (init last: H)
   :=
-  | step (ev:  Event Es Eh)
-         (Hst: state_transformation C init ev last)
+  | step (ev:  E)
+         (Hst: init -[C|ev]-> last)
     : Run C init last
   | sequence {penultimate: H}
              (r':          Run C init penultimate)
-             (ev:          Event Es Eh)
-             (Hst:         state_transformation C penultimate ev last)
+             (ev:          E)
+             (Hst:         penultimate -[C|ev]-> last)
     : Run C init last.
 
-Arguments step [H Es Eh C init last] (ev Hst).
-Arguments sequence [H Es Eh C init last penultimate] (r' ev Hst).
+Arguments step [H E evInst C init last] (ev Hst).
+Arguments sequence [H E evInst C init last penultimate] (r' ev Hst).
 
 Definition rinit
-           {H Es Eh:   Type}
-           {C:         ComputingSystem H Es Eh}
+           {H E:       Type}
+          `{Event E}
+           {C:         ComputingSystem H E}
            {init last: H}
            (r:         Run C init last)
   : H :=
   init.
 
 Definition rlast
-           {H Es Eh:   Type}
-           {C:         ComputingSystem H Es Eh}
+           {H E:       Type}
+          `{Event E}
+           {C:         ComputingSystem H E}
            {init last: H}
            (r:         Run C init last)
   : H :=
   last.
 
 Fixpoint always_true
-         {H Es Eh:   Type}
-         {C:         ComputingSystem H Es Eh}
+         {H E:       Type}
+        `{Event E}
+         {C:         ComputingSystem H E}
          {init last: H}
-         (prop:      H -> Event Es Eh -> Prop)
+         (prop:      H -> E -> Prop)
          (r:         Run C init last)
   : Prop :=
   match r with
