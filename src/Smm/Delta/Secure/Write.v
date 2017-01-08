@@ -7,10 +7,10 @@ Require Import SpecCert.Smm.Software.
 Require Import SpecCert.x86.
 Require Import SpecCert.Cache.
 
-Lemma write_inv_is_secure:
-  forall (pa :PhysicalAddress) (v: Value),
-    inv_is_secure (software (Write pa v)).
+Lemma write_inv_is_secure
+      (pa: PhysicalAddress)
+      (v:  Value)
+  : inv_is_secure (Write pa v).
 Proof.
-  intros pa v.
   trivial_inv_is_secure.
 Qed.

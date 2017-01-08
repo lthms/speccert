@@ -11,7 +11,7 @@ Definition fetched
            (ev: x86Event)
   : option Software :=
   match ev with
-  | hardware (Exec _) => option_map snd (find_address_content h (ip (proc h)))
+  | Exec _ => option_map snd (find_address_content h (ip (proc h)))
   | _ => None
   end.
 
@@ -26,17 +26,17 @@ Definition smm_secure
   : Prop :=
   software_execution_isolation smm_context fetched SmmTCB r.
 
-Definition software_inv_is_secure
-           (ev:SoftwareEvent) :=
+Program Definition software_inv_is_secure
+           (ev: { ev: x86Event | x86_software ev }) :=
   forall a a' :Architecture Software,
     inv a
     -> smm_behavior a ev
-    -> x86_precondition a (software ev)
-    -> x86_postcondition smm_context a (software ev) a'
-    -> software_step_isolation smm_context fetched SmmTCB a (software ev).
+    -> x86_precondition a ev
+    -> x86_postcondition smm_context a ev a'
+    -> software_step_isolation smm_context fetched SmmTCB a ev.
 
 Definition inv_is_secure
-           (ev:x86Event) :=
+           (ev: x86Event) :=
   forall a a' :Architecture Software,
     inv a
     -> x86_precondition a ev

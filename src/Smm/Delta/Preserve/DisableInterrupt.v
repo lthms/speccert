@@ -4,7 +4,7 @@ Require Import SpecCert.Formalism.
 Require Import SpecCert.x86.
 
 Lemma disable_interrupt_inv:
-  preserve_inv (software DisableInterrupt).
+  preserve_inv DisableInterrupt.
 Proof.
   unfold preserve_inv.
   unfold Invariant.inv.

@@ -16,9 +16,11 @@ Program Definition Delta
    ; TCB               := SmmTCB
    ; context           := smm_context |}.
 Next Obligation.
-  induction ev as [sev|hev].
-  + apply (software_transitions_preserve_inv sev h h' H H0 H1 H2).
-  + apply (hardware_transitions_preserve_inv hev h h' H H1 H2).
+  unfold software_only_prop in H1.
+  destruct (software_dec ev).
+  + apply (software_transitions_preserve_inv (exist _ ev _) h h' H H1 H0 H2).
+  + assert ((fun ev : x86Event => ~ x86_software ev) ev) as Hmiss by exact n.
+    apply (hardware_transitions_preserve_inv (exist _ ev Hmiss) h h' H H0 H2).
 Qed.
 Next Obligation.
   unfold smm_behavior, SmmTCB, In in *.
