@@ -24,7 +24,7 @@ Proof.
     try destruct Hev. (* deal with hardware events very quickly *)
   + apply (disable_interrupt_inv a a' Hinv Htrans).
   + apply (enable_interrupt_inv a a' Hinv Htrans).
-  + apply (read_inv _ _ a a' Hinv Htrans).
+  + apply (read_inv _ _ _ a a' Hinv Htrans).
   + apply (write_inv _ _ a a' Hinv Htrans).
   + apply (open_smram_inv a a' Hinv Htrans).
   + apply (close_smram_inv a a' Hinv Htrans).
@@ -44,6 +44,6 @@ Proof.
          assert (~ True) as H' by (exact Hev);
          apply H in H';
          destruct H'); simpl in *.
-  + apply exec_inv.
+  + apply read_inv.
   + apply receive_interrupt_inv.
 Qed.
