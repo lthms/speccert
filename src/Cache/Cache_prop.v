@@ -17,17 +17,8 @@ Definition cache_hit_dec
            {S     :Type}
            (cache :Cache S)
            (pa:PhysicalAddress)
-           : {cache_hit cache pa}+{~ cache_hit cache pa}.
-refine (
-    decide_dec (eq_dec pa
-                       (tag
-                          (find_in_map cache
-                                       (phys_to_index pa)
-                          )
-                       )
-               )
-  ); unfold cache_hit; simpl in *; trivial.
-Defined.
+           : { cache_hit cache pa } + { ~ cache_hit cache pa } :=
+  eq_dec pa (tag (find_in_map cache (phys_to_index pa))).
 
 Definition cache_location_is_dirty
            {S     :Type}
@@ -39,19 +30,8 @@ Definition cache_location_is_dirty_dec
            {S     :Type}
            (cache :Cache S)
            (pa    :PhysicalAddress)
-  : {cache_location_is_dirty cache pa}+{~ cache_location_is_dirty cache pa}.
-refine (
-    decide_dec (
-        bool_dec
-          (dirty
-             (find_in_map cache (phys_to_index pa))
-          )
-          true
-      )
-  );
-unfold cache_location_is_dirty;
-trivial.
-Defined.
+  : { cache_location_is_dirty cache pa } + { ~ cache_location_is_dirty cache pa } :=
+  bool_dec (dirty (find_in_map cache (phys_to_index pa))) true.
 
 Definition cache_is_well_formed
            {S     :Type}

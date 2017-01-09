@@ -98,21 +98,30 @@ Proof.
   + apply eq_sym; exact Heq'.
 Qed.
 
-Definition addr_eq_dec
-           {T:    Type}
-          `{Eq T}
-           (a a': Address T)
-  : {addr_eq a a'}+{~addr_eq a a'}.
-refine (
-    decide_dec (sumbool_and _
-                            _
-                            _
-                            _
-                            (eq_nat_decide (address_offset a) (address_offset a'))
-                            (eq_dec (address_scope a) (address_scope a'))
-               )
-); unfold addr_eq; intuition.
-Defined.
+Program Definition addr_eq_dec
+        {T:    Type}
+       `{Eq T}
+        (a a': Address T)
+  : {addr_eq a a'}+{~addr_eq a a'} :=
+  if (eq_nat_decide (address_offset a) (address_offset a'))
+  then if (eq_dec (address_scope a) (address_scope a'))
+       then true_dec
+       else false_dec
+  else false_dec.
+Next Obligation.
+  unfold addr_eq; split; intuition.
+Qed.
+Next Obligation.
+  unfold addr_eq.
+  intros [H2 H3].
+  apply H1 in H3.
+  exact H3.
+Qed.
+Next Obligation.
+  unfold addr_eq.
+  intros [H2 H3].
+  intuition.
+Qed.
 
 Instance AddrEq
          {T: Type}
