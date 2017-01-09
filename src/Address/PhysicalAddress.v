@@ -94,14 +94,10 @@ Definition is_inside_smram (pa:PhysicalAddress) :=
  *)
 
 Definition is_inside_smram_dec (pa:PhysicalAddress)
-  : {is_inside_smram pa}+{~is_inside_smram pa}.
-refine (
-  decide_dec(is_inside_interval_dec (address_offset pa) smram_space)
-); unfold is_inside_smram; trivial.
-Defined.
+  : { is_inside_smram pa } + { ~ is_inside_smram pa } :=
+  is_inside_interval_dec (address_offset pa) smram_space.
 
 Definition phys_addr_eq_dec
            (pa pa': PhysicalAddress)
-  : {addr_eq pa pa'}+{~ addr_eq pa pa'}.
-refine (decide_dec (addr_eq_dec pa pa')); trivial.
-Defined.
+  : {addr_eq pa pa'}+{~ addr_eq pa pa'} :=
+  addr_eq_dec pa pa'.

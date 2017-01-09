@@ -1,29 +1,34 @@
+Require Import Coq.Program.Tactics.
+
 Require Import SpecCert.x86.Architecture.MemoryController.Registers.Smramc_rec.
 Require Import SpecCert.x86.Architecture.MemoryController.Registers.Smramc_prop.
 
-Definition set_d_lock (s:SmramcRegister)(pre:smramc_is_rw s):SmramcRegister.
-refine (
+Program Definition set_d_lock
+        (s:   SmramcRegister)
+        (pre: smramc_is_rw s)
+  : SmramcRegister :=
   {| d_open := false ;
-     d_lock := true 
-   |}
-); intuition.
-Defined.
+     d_lock := true
+   |}.
 
-Definition set_d_open (s:SmramcRegister)(pre:smramc_is_rw s):SmramcRegister.
-refine (
+Program Definition set_d_open
+        (s:   SmramcRegister)
+        (pre: smramc_is_rw s)
+  : SmramcRegister :=
   {| d_open := true ;
-     d_lock := d_lock s 
-   |}
-); intuition.
-unfold smramc_is_rw in pre.
-rewrite H in pre.
-discriminate pre.
-Defined.
+     d_lock := d_lock s
+   |}.
+Next Obligation.
+  unfold smramc_is_rw in pre.
+  rewrite pre in H.
+  destruct H.
+  reflexivity.
+Qed.
 
-Definition unset_d_open (s:SmramcRegister)(pre:smramc_is_rw s):SmramcRegister.
-refine (
+Program Definition unset_d_open
+        (s:   SmramcRegister)
+        (pre: smramc_is_rw s)
+  : SmramcRegister :=
   {| d_open := false ;
-     d_lock := d_lock s 
-   |}
-); intuition.
-Defined.
+     d_lock := d_lock s
+   |}.
