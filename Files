@@ -11,6 +11,7 @@ src/Interval/IntervalNotations.v
 
 src/Address/AddressSpace.v
 src/Address/Address.v
+src/Address/LogicalAddress.v
 src/Address/PhysicalAddress.v
 src/Address/HardwareAddress.v
 src/Address.v

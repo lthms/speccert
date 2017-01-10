@@ -135,3 +135,86 @@ Instance AddrEq
   ; eq_equal := addr_eq_eq
   ; equal_eq := eq_addr_eq
   }.
+
+Class Singleton (S: Type) :=
+  { singleton: forall (s s': S), s = s' }.
+
+
+Definition singleton_eq
+           {S: Type}
+          `{Singleton S}
+           (s s': S)
+  : Prop :=
+  s = s'.
+
+Program Definition singleton_eq_dec
+           {S: Type}
+          `{Singleton S}
+           (s s': S)
+  : { singleton_eq s s' } + { ~ singleton_eq s s'} :=
+  true_dec.
+Next Obligation.
+  apply singleton.
+Defined.
+
+Lemma singleton_eq_refl
+      {S: Type}
+      `{Singleton S}
+      (s: S)
+  : singleton_eq s s.
+Proof.
+  reflexivity.
+Qed.
+
+Lemma singleton_eq_sym
+      {S:    Type}
+     `{Singleton S}
+      (s s': S)
+  : singleton_eq s s' -> singleton_eq s' s.
+Proof.
+  unfold singleton_eq; auto.
+Qed.
+
+Lemma singleton_eq_trans
+      {S:    Type}
+     `{Singleton S}
+      (s s' s'': S)
+  : singleton_eq s s'
+    -> singleton_eq s' s''
+    -> singleton_eq s s''.
+Proof.
+  rewrite (singleton s' s); rewrite (singleton s'' s).
+  trivial.
+Qed.
+
+Lemma singleton_eq_eq
+      {S:    Type}
+     `{Singleton S}
+      (s s': S)
+  : singleton_eq s s' -> s = s'.
+Proof.
+  intro H'; apply singleton.
+Qed.
+
+Lemma eq_singleton_eq
+      {S:    Type}
+     `{Singleton S}
+      (s s': S)
+  : s = s' -> singleton_eq s s'.
+Proof.
+  intro Heq.
+  apply singleton.
+Qed.
+
+Instance singletonEq
+         (S: Type)
+        `{Singleton S}
+  : Eq S :=
+  { eq       := singleton_eq
+  ; eq_refl  := singleton_eq_refl
+  ; eq_sym   := singleton_eq_sym
+  ; eq_trans := singleton_eq_trans
+  ; eq_dec   := singleton_eq_dec
+  ; eq_equal := singleton_eq_eq
+  ; equal_eq := eq_singleton_eq
+  }.
