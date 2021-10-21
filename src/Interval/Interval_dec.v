@@ -1,6 +1,6 @@
 Require Import Coq.Bool.Sumbool.
 Require Import Coq.Arith.Compare_dec.
-Require Import Omega.
+Require Import Lia.
 
 Require Import SpecCert.Interval.Interval_ind.
 Require Import SpecCert.Interval.Interval_func.
@@ -16,11 +16,11 @@ Program Definition is_inside_interval_dec
     (le_dec b x) :&& (le_dec x e).
 Next Obligation.
   unfold is_inside_interval.
-  omega.
+  lia.
 Qed.
 Next Obligation.
   unfold is_inside_interval.
-  omega.
+  lia.
 Qed.
 
 Program Definition is_included_dec
@@ -33,11 +33,11 @@ Program Definition is_included_dec
   (le_dec b2 b1) :&& (le_dec e1 e2).
 Next Obligation.
   unfold is_included_in.
-  omega.
+  lia.
 Qed.
 Next Obligation.
   unfold is_included_in.
-  omega.
+  lia.
 Qed.
 
 Program Definition disjoint_dec
@@ -50,9 +50,9 @@ Program Definition disjoint_dec
   (lt_dec e1 b2) :&& (lt_dec e2 b1).
 Next Obligation.
   unfold disjoint.
-  omega.
+  lia.
 Qed.
 Next Obligation.
   unfold disjoint.
-  omega.
+  lia.
 Qed.

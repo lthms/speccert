@@ -25,10 +25,12 @@ unfold hc_eq.
 decide equality.
 Qed.
 
+#[refine]
 Instance hcEq : Eq HardwareComponent :=
   { eq := hc_eq
   ; eq_dec := hc_eq_dec
   }.
+Proof.
 + unfold hc_eq; auto.
 + unfold hc_eq; auto.
 + unfold hc_eq; intros t t' t'' H1 H2; rewrite H1; rewrite H2; reflexivity.
